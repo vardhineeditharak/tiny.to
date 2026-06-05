@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
 import { redis } from '../../../lib/redis';
 
 // Generate a random, readable short code (length 5)
@@ -35,6 +36,7 @@ export async function POST(request) {
   try {
     const body = await request.json();
     let originalUrl = body.url;
+    const alias = body.alias ? body.alias.trim() : null;
 
     if (!originalUrl) {
       return NextResponse.json({ error: 'URL is required.' }, { status: 400 });
@@ -58,27 +60,75 @@ export async function POST(request) {
       }
     }
 
-    // Try generating a unique code and inserting it (up to 5 retries for collisions)
-    let shortCode = '';
-    let success = false;
-    let attempts = 0;
+    // Check if user is logged in
+    const cookieStore = cookies();
+    const sessionId = cookieStore.get('session')?.value;
+    let userId = null;
 
-    while (!success && attempts < 5) {
-      shortCode = generateShortCode();
-      attempts++;
-
-      // Set key with NX (set only if not exists)
-      const setStatus = await redis.set(`url:${shortCode}`, originalUrl, { nx: true });
-      
-      if (setStatus === 'OK' || setStatus === true || setStatus === 1) {
-        // Initialize click counter to 0
-        await redis.set(`clicks:${shortCode}`, 0);
-        success = true;
+    if (sessionId) {
+      const sessionData = await redis.get(`session:${sessionId}`);
+      if (sessionData) {
+        const session = typeof sessionData === 'string' ? JSON.parse(sessionData) : sessionData;
+        userId = session.userId;
       }
     }
 
-    if (!success) {
-      return NextResponse.json({ error: 'Could not generate a unique short code.' }, { status: 500 });
+    let shortCode = '';
+
+    if (alias) {
+      // Validate custom alias format
+      const aliasRegex = /^[a-zA-Z0-9-_]+$/;
+      if (!aliasRegex.test(alias)) {
+        return NextResponse.json(
+          { error: 'Alias must contain only letters, numbers, dashes, and underscores.' },
+          { status: 400 }
+        );
+      }
+
+      if (alias.length < 3 || alias.length > 30) {
+        return NextResponse.json(
+          { error: 'Alias must be between 3 and 30 characters long.' },
+          { status: 400 }
+        );
+      }
+
+      // Check if custom alias already exists
+      const existingUrl = await redis.get(`url:${alias}`);
+      if (existingUrl) {
+        return NextResponse.json({ error: 'This custom alias is already taken.' }, { status: 409 });
+      }
+
+      shortCode = alias;
+      await redis.set(`url:${shortCode}`, originalUrl);
+      await redis.set(`clicks:${shortCode}`, 0);
+    } else {
+      // Try generating a unique code and inserting it (up to 5 retries for collisions)
+      let success = false;
+      let attempts = 0;
+
+      while (!success && attempts < 5) {
+        shortCode = generateShortCode();
+        attempts++;
+
+        // Set key with NX (set only if not exists)
+        const setStatus = await redis.set(`url:${shortCode}`, originalUrl, { nx: true });
+        
+        if (setStatus === 'OK' || setStatus === true || setStatus === 1) {
+          // Initialize click counter to 0
+          await redis.set(`clicks:${shortCode}`, 0);
+          success = true;
+        }
+      }
+
+      if (!success) {
+        return NextResponse.json({ error: 'Could not generate a unique short code.' }, { status: 500 });
+      }
+    }
+
+    // If logged in, associate this short code with user profile
+    if (userId) {
+      await redis.set(`url_owner:${shortCode}`, userId);
+      await redis.sadd(`user_links:${userId}`, shortCode);
     }
 
     return NextResponse.json({ shortCode });
