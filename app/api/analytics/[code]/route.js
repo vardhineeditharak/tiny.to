@@ -49,17 +49,6 @@ export async function GET(request, { params }) {
       return NextResponse.json({ error: 'Link not found.' }, { status: 404 });
     }
 
-    // If user is not premium, we restrict detailed logs but still return the click count
-    if (!user.isPremium) {
-      return NextResponse.json({
-        shortCode: code,
-        original: originalUrl,
-        clicks: parseInt(clicks, 10),
-        isPremium: false,
-        analytics: [] // Empty for non-premium
-      });
-    }
-
     // Fetch click logs from Redis list
     const logStrings = await redis.lrange(`analytics:${code}`, 0, -1) || [];
     const clickLogs = logStrings.map((log) => {
