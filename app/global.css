@@ -1,0 +1,62 @@
+/* Core Reset & Variables */
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+:root {
+  --bg: oklch(0.08 0.01 240);
+  --text: oklch(0.97 0.005 240);
+  --text-muted: oklch(0.65 0.01 240);
+  --accent: oklch(0.78 0.14 145);
+  --accent-hover: oklch(0.83 0.16 145);
+  --border: oklch(0.18 0.01 240);
+  --control-bg: oklch(0.12 0.01 240);
+  --control-bg-hover: oklch(0.15 0.01 240);
+  --error: oklch(0.65 0.18 20);
+  --success: oklch(0.78 0.14 145);
+  
+  --font-sans: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+  
+  --ease: cubic-bezier(0.16, 1, 0.3, 1);
+  --duration: 0.3s;
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  background-color: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  line-height: 1.6;
+}
+
+/* Custom Selection & Focus Ring */
+::selection {
+  background-color: var(--accent);
+  color: var(--bg);
+}
+
+*:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 4px;
+}
+
+/* Base interactive transitions */
+a, button, input {
+  transition: all var(--duration) var(--ease);
+}
+
+/* Reduced Motion Override */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
