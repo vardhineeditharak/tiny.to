@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { 
   Link2, Copy, Check, ExternalLink, AlertTriangle, ArrowRight, Trash2,
   Lock, User, Shield, BarChart3, LogOut, CheckCircle2, CreditCard, RefreshCw 
@@ -8,6 +9,7 @@ import {
 import styles from './page.module.css';
 
 export default function Home() {
+  const router = useRouter();
   // Core shorten states
   const [url, setUrl] = useState('');
   const [alias, setAlias] = useState('');
@@ -497,6 +499,9 @@ export default function Home() {
             <>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <span className={styles.userEmail}>{user.email}</span>
+                <button onClick={() => router.push('/dashboard')} className={styles.navBtn} style={{ marginLeft: '0.5rem', padding: '0.3rem 0.6rem' }}>
+                  Dashboard
+                </button>
               </div>
               <button onClick={handleSignOut} className={styles.signOutBtn}>
                 <LogOut size={16} style={{ verticalAlign: 'middle', marginRight: '4px' }} />
@@ -619,7 +624,7 @@ export default function Home() {
                       {user && (
                         <button
                           type="button"
-                          onClick={() => viewAnalytics(item.shortCode)}
+                          onClick={() => router.push(`/dashboard?code=${item.shortCode}`)}
                           className={styles.miniAnalytics}
                         >
                           <BarChart3 size={14} />
@@ -637,52 +642,6 @@ export default function Home() {
             </div>
           )}
         </div>
-        
-        {user && (
-          <div className={styles.settingsSection}>
-            <h3 className={styles.settingsTitle}>
-              <User size={18} className={styles.logoDot} />
-              Account & Mailing Settings
-            </h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                <div className={styles.fieldGroup}>
-                  <label className={styles.fieldLabel}>Full Name</label>
-                  <input
-                    type="text"
-                    value={user.name || ''}
-                    onChange={(e) => handleUpdateSettings({ name: e.target.value })}
-                    className={styles.formInput}
-                    placeholder="Enter your name"
-                  />
-                </div>
-                <div className={styles.fieldGroup}>
-                  <label className={styles.fieldLabel}>Phone Number</label>
-                  <input
-                    type="tel"
-                    value={user.phone || ''}
-                    onChange={(e) => handleUpdateSettings({ phone: e.target.value })}
-                    className={styles.formInput}
-                    placeholder="Enter your phone"
-                  />
-                </div>
-              </div>
-              <div style={{ borderTop: '1px solid var(--border)', paddingTop: '1rem', marginTop: '0.5rem' }}>
-                <label className={styles.checkboxLabel}>
-                  <input
-                    type="checkbox"
-                    checked={!!user.emailAnalyticsEnabled}
-                    onChange={(e) => handleUpdateSettings({ emailAnalyticsEnabled: e.target.checked })}
-                    className={styles.checkboxInput}
-                  />
-                  <span>
-                    <strong>Email weekly reports:</strong> Send a summary of click analytics to <strong>{user.email}</strong> every Monday.
-                  </span>
-                </label>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
 
       <footer className={styles.footer}>
@@ -729,31 +688,7 @@ export default function Home() {
               <div className={styles.divider}>or</div>
 
               <form onSubmit={handleAuthSubmit} className={styles.authForm}>
-                {authTab === 'signup' && (
-                  <>
-                    <div className={styles.fieldGroup}>
-                      <label className={styles.fieldLabel}>Full Name</label>
-                      <input 
-                        type="text" 
-                        value={authName} 
-                        onChange={(e) => setAuthName(e.target.value)}
-                        required
-                        className={styles.formInput}
-                        placeholder="Alex Johnson"
-                      />
-                    </div>
-                    <div className={styles.fieldGroup}>
-                      <label className={styles.fieldLabel}>Phone Number</label>
-                      <input 
-                        type="tel" 
-                        value={authPhone} 
-                        onChange={(e) => setAuthPhone(e.target.value)}
-                        className={styles.formInput}
-                        placeholder="+1 (555) 019-2834"
-                      />
-                    </div>
-                  </>
-                )}
+
 
                 <div className={styles.fieldGroup}>
                   <label className={styles.fieldLabel}>Email Address</label>
