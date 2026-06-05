@@ -7,6 +7,7 @@
   padding: 4rem 1.5rem;
   max-width: 680px;
   margin: 0 auto;
+  background-image: radial-gradient(circle at 50% 20%, oklch(0.15 0.03 145 / 0.08), transparent 50%);
 }
 
 .warningBanner {
@@ -247,12 +248,28 @@
   padding: 0.875rem 1.25rem;
   background-color: var(--control-bg);
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: 8px;
   gap: 1rem;
+  transition: border-color var(--duration) var(--ease), background-color var(--duration) var(--ease);
 }
 
 .historyItem:hover {
   border-color: oklch(0.25 0.01 240);
+  background-color: var(--control-bg-hover);
+}
+
+.emptyHistory {
+  text-align: center;
+  padding: 2rem;
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  font-weight: 300;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn var(--duration) var(--ease);
 }
 
 .historyUrls {

@@ -156,9 +156,9 @@ export default function Home() {
           </div>
         )}
 
-        {history.length > 0 && (
-          <div className={styles.historySection}>
-            <h2 className={styles.historyTitle}>Recent Links</h2>
+        <div className={styles.historySection}>
+          <h2 className={styles.historyTitle}>Recent Links</h2>
+          {history.length > 0 ? (
             <div className={styles.historyList}>
               {history.map((item, idx) => (
                 <div key={idx} className={styles.historyItem}>
@@ -188,8 +188,12 @@ export default function Home() {
                 </div>
               ))}
             </div>
-          </div>
-        )}
+          ) : (
+            <div className={styles.emptyHistory}>
+              <span>Your shortened links will appear here.</span>
+            </div>
+          )}
+        </div>
       </div>
 
       <footer className={styles.footer}>
