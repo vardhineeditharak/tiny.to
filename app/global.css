@@ -28,6 +28,8 @@
 
 html, body {
   background-color: var(--bg);
+  background-image: radial-gradient(oklch(1 0 0 / 0.03) 1px, transparent 1px);
+  background-size: 24px 24px;
   color: var(--text);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
