@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Link2, Copy, Check, ExternalLink, AlertTriangle, ArrowRight } from 'lucide-react';
+import { Link2, Copy, Check, ExternalLink, AlertTriangle, ArrowRight, Trash2 } from 'lucide-react';
 import styles from './page.module.css';
 
 export default function Home() {
@@ -62,7 +62,7 @@ export default function Home() {
         throw new Error(data.error || 'Something went wrong');
       }
 
-      const shortDomain = process.env.NEXT_PUBLIC_SHORT_DOMAIN || 'tiny.to';
+      const shortDomain = process.env.NEXT_PUBLIC_SHORT_DOMAIN || 'tiny-to.vercel.app';
       const shortUrl = `${shortDomain}/${data.shortCode}`;
       const localShortUrl = `${window.location.origin}/${data.shortCode}`;
 
@@ -98,6 +98,12 @@ export default function Home() {
     }
   };
 
+  const deleteEntry = (shortCode) => {
+    const updatedHistory = history.filter((item) => item.shortCode !== shortCode);
+    setHistory(updatedHistory);
+    localStorage.setItem('shortener_history', JSON.stringify(updatedHistory));
+  };
+
   return (
     <div className={styles.container}>
       {envWarning && (
@@ -110,7 +116,7 @@ export default function Home() {
       )}
 
       <header className={styles.header}>
-        <h1 className={styles.logo}>tiny<span className={styles.logoDot}>.</span>to</h1>
+        <h1 className={styles.logo}>tiny<span className={styles.logoDot}>-</span>to</h1>
         <p className={styles.tagline}>Ultra-minimalist, privacy-friendly, edge-fast URL shortening.</p>
       </header>
 
@@ -184,6 +190,14 @@ export default function Home() {
                     >
                       <ExternalLink size={14} />
                     </a>
+                    <button
+                      type="button"
+                      onClick={() => deleteEntry(item.shortCode)}
+                      className={styles.miniDelete}
+                      aria-label="Delete link"
+                    >
+                      <Trash2 size={14} />
+                    </button>
                   </div>
                 </div>
               ))}

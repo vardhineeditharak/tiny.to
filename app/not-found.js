@@ -6,7 +6,7 @@ export default function NotFound() {
       <h1 style={titleStyle}>Link not found</h1>
       <p style={textStyle}>The link you are trying to reach might have expired or never existed.</p>
       <Link href="/" style={linkStyle}>
-        Go to tiny.to
+        Go to tiny-to
       </Link>
     </div>
   );

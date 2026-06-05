@@ -1,7 +1,7 @@
 import './global.css';
 
 export const metadata = {
-  title: 'tiny.to — Ultra-Minimalist URL Shortener',
+  title: 'tiny-to — Ultra-Minimalist URL Shortener',
   description: 'A clean, privacy-respecting, and edge-fast URL shortener with zero distraction.',
 };
 

@@ -325,6 +325,30 @@
   transform: scale(0.92);
 }
 
+.miniDelete {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  width: 40px;
+  height: 40px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform var(--duration) var(--ease), border-color var(--duration) var(--ease), color var(--duration) var(--ease), background-color var(--duration) var(--ease);
+}
+
+.miniDelete:hover {
+  color: oklch(0.85 0.05 20);
+  border-color: var(--error);
+  background-color: rgba(239, 68, 68, 0.08);
+}
+
+.miniDelete:active {
+  transform: scale(0.92);
+}
+
 .footer {
   font-size: 0.75rem;
   color: var(--text-muted);
