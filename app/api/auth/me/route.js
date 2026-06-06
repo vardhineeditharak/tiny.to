@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { redis } from '../../../../lib/redis';
+import { logger } from '../../../../lib/logger';
 
 export async function GET() {
   if (!redis) {
@@ -65,7 +66,7 @@ export async function GET() {
       links,
     });
   } catch (error) {
-    console.error('Me endpoint error:', error);
+    logger.error('Me endpoint error:', error);
     return NextResponse.json({ error: 'Internal server error.' }, { status: 500 });
   }
 }

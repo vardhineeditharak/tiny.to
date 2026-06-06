@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { redis } from '../../../lib/redis';
+import { logger } from '../../../lib/logger';
 
 // Generate a random, readable short code (length 5)
 // Avoid confusing characters: 0, O, I, l, 1
@@ -133,7 +134,54 @@ export async function POST(request) {
 
     return NextResponse.json({ shortCode });
   } catch (error) {
-    console.error('Error in /api/shorten:', error);
+    logger.error('Error in /api/shorten:', error);
+    return NextResponse.json({ error: 'Internal server error.' }, { status: 500 });
+  }
+}
+
+export async function DELETE(request) {
+  if (!redis) {
+    return NextResponse.json({ error: 'Database is not configured.' }, { status: 503 });
+  }
+
+  try {
+    const { searchParams } = new URL(request.url);
+    const code = searchParams.get('code');
+
+    if (!code) {
+      return NextResponse.json({ error: 'Short code is required.' }, { status: 400 });
+    }
+
+    const cookieStore = cookies();
+    const sessionId = cookieStore.get('session')?.value;
+    if (!sessionId) {
+      return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
+    }
+
+    const sessionData = await redis.get(`session:${sessionId}`);
+    if (!sessionData) {
+      return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
+    }
+
+    const session = typeof sessionData === 'string' ? JSON.parse(sessionData) : sessionData;
+    const { userId } = session;
+
+    const isOwner = await redis.sismember(`user_links:${userId}`, code);
+    const owner = await redis.get(`url_owner:${code}`);
+
+    if (owner && owner !== userId && !isOwner) {
+      return NextResponse.json({ error: 'Forbidden. You do not own this link.' }, { status: 403 });
+    }
+
+    await redis.del(`url:${code}`);
+    await redis.del(`clicks:${code}`);
+    await redis.del(`url_owner:${code}`);
+    await redis.del(`analytics:${code}`);
+    await redis.srem(`user_links:${userId}`, code);
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    logger.error('Delete link error:', error);
     return NextResponse.json({ error: 'Internal server error.' }, { status: 500 });
   }
 }

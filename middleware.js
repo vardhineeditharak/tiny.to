@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { Redis } from '@upstash/redis';
+import { logger } from './lib/logger';
 
 // Initialize Redis if env vars are present
 const redisUrl = process.env.UPSTASH_REDIS_REST_URL;
@@ -117,12 +118,12 @@ export async function middleware(request) {
         // Push click details asynchronously (don't block redirect)
         redis.lpush(`analytics:${code}`, JSON.stringify(clickLog))
           .then(() => redis.ltrim(`analytics:${code}`, 0, 499))
-          .catch((err) => console.error('Failed to log analytics:', err));
+          .catch((err) => logger.error('Failed to log analytics:', err));
 
         return NextResponse.redirect(new URL(originalUrl), 302);
       }
     } catch (error) {
-      console.error('Middleware redirect error:', error);
+      logger.error('Middleware redirect error:', error);
     }
   }
 

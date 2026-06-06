@@ -2,14 +2,17 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { 
-  Link2, Copy, Check, ExternalLink, AlertTriangle, ArrowRight, Trash2,
-  Lock, User, Shield, BarChart3, LogOut, CheckCircle2, CreditCard, RefreshCw 
+import {
+  Link2, Copy, Check, ExternalLink, AlertTriangle, ArrowRight,
+  BarChart3, LogOut, Clock
 } from 'lucide-react';
 import styles from './page.module.css';
+import TextType from './components/TextType';
+import LightRays from './components/LightRays';
 
 export default function Home() {
   const router = useRouter();
+
   // Core shorten states
   const [url, setUrl] = useState('');
   const [alias, setAlias] = useState('');
@@ -23,29 +26,6 @@ export default function Home() {
   // User & Auth states
   const [user, setUser] = useState(null);
   const [links, setLinks] = useState([]);
-  const [authModalOpen, setAuthModalOpen] = useState(false);
-  const [authTab, setAuthTab] = useState('login'); // 'login' or 'signup'
-  const [authEmail, setAuthEmail] = useState('');
-  const [authPassword, setAuthPassword] = useState('');
-  const [authName, setAuthName] = useState('');
-  const [authPhone, setAuthPhone] = useState('');
-  const [authEmailAnalytics, setAuthEmailAnalytics] = useState(true);
-  const [authError, setAuthError] = useState('');
-  const [authLoading, setAuthLoading] = useState(false);
-
-  // Checkout states
-  const [checkoutOpen, setCheckoutOpen] = useState(false);
-  const [cardNumber, setCardNumber] = useState('4242 •••• •••• 4242');
-  const [cardExpiry, setCardExpiry] = useState('12/28');
-  const [cardCvv, setCardCvv] = useState('123');
-  const [checkoutLoading, setCheckoutLoading] = useState(false);
-  const [checkoutSuccess, setCheckoutSuccess] = useState(false);
-
-  // Analytics states
-  const [analyticsOpen, setAnalyticsOpen] = useState(false);
-  const [analyticsCode, setAnalyticsCode] = useState('');
-  const [analyticsData, setAnalyticsData] = useState(null);
-  const [analyticsLoading, setAnalyticsLoading] = useState(false);
 
   // Load user profile & links
   const fetchUserSession = async () => {
@@ -69,12 +49,11 @@ export default function Home() {
     fetchUserSession();
     checkEnvStatus();
 
-    // Check for error in query string
+    // Check for error params in query string
     const searchParams = new URLSearchParams(window.location.search);
     const oauthError = searchParams.get('error');
     if (oauthError) {
       setError(oauthError);
-      // Clean query string
       window.history.replaceState({}, document.title, window.location.pathname);
     }
   }, []);
@@ -112,17 +91,15 @@ export default function Home() {
         throw new Error(data.error || 'Something went wrong');
       }
 
-      const shortDomain = process.env.NEXT_PUBLIC_SHORT_DOMAIN || 'tiny-to.vercel.app';
+      const shortDomain = process.env.NEXT_PUBLIC_SHORT_DOMAIN || (mounted ? window.location.host : 'tiny.to');
       const shortUrl = `${shortDomain}/${data.shortCode}`;
 
       setUrl('');
       setAlias('');
       setResult(shortUrl);
 
-      // Refresh list if logged in
-      if (user) {
-        fetchUserSession();
-      }
+      // Refresh list
+      fetchUserSession();
     } catch (err) {
       setError(err.message);
     } finally {
@@ -141,61 +118,6 @@ export default function Home() {
     }
   };
 
-  // Auth actions
-  const handleAuthSubmit = async (e) => {
-    e.preventDefault();
-    setAuthLoading(true);
-    setAuthError('');
-
-    const url = `/api/auth/${authTab}`;
-    try {
-      const res = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          email: authEmail, 
-          password: authPassword,
-          name: authTab === 'signup' ? authName : undefined,
-          phone: authTab === 'signup' ? authPhone : undefined,
-          emailAnalyticsEnabled: authTab === 'signup' ? authEmailAnalytics : undefined
-        }),
-      });
-
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || 'Authentication failed');
-      }
-
-      setUser(data.user);
-      setAuthModalOpen(false);
-      setAuthEmail('');
-      setAuthPassword('');
-      setAuthName('');
-      setAuthPhone('');
-      fetchUserSession();
-    } catch (err) {
-      setAuthError(err.message);
-    } finally {
-      setAuthLoading(false);
-    }
-  };
-
-  const handleUpdateSettings = async (updates) => {
-    try {
-      const res = await fetch('/api/auth/settings', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updates)
-      });
-      const data = await res.json();
-      if (res.ok) {
-        setUser(data.user);
-      }
-    } catch (err) {
-      console.error('Failed to update settings:', err);
-    }
-  };
-
   const handleSignOut = async () => {
     try {
       await fetch('/api/auth/logout', { method: 'POST' });
@@ -206,322 +128,71 @@ export default function Home() {
     }
   };
 
-  // Simulated upgrade payment
-  const handleUpgrade = async (e) => {
-    e.preventDefault();
-    setCheckoutLoading(true);
-    try {
-      const res = await fetch('/api/checkout', { method: 'POST' });
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || 'Payment failed');
-      }
-
-      setCheckoutSuccess(true);
-      setUser(data.user);
-      setTimeout(() => {
-        setCheckoutOpen(false);
-        setCheckoutSuccess(false);
-        // Refresh analytics if currently open
-        if (analyticsOpen) {
-          viewAnalytics(analyticsCode);
-        }
-      }, 1500);
-    } catch (err) {
-      alert(err.message);
-    } finally {
-      setCheckoutLoading(false);
-    }
-  };
-
-  // View Analytics
-  const viewAnalytics = async (code) => {
-    setAnalyticsCode(code);
-    setAnalyticsOpen(true);
-    setAnalyticsLoading(true);
-    setAnalyticsData(null);
-
-    try {
-      const res = await fetch(`/api/analytics/${code}`);
-      const data = await res.json();
-      if (res.ok) {
-        setAnalyticsData(data);
-      } else {
-        console.error('Failed to load analytics:', data.error);
-      }
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setAnalyticsLoading(false);
-    }
-  };
-
-  // Compute SVG chart point paths & stats
-  const renderAnalyticsDashboard = () => {
-    if (!analyticsData) return null;
-
-    const logs = analyticsData.analytics || [];
-    
-    // Group clicks by past 7 days
-    const days = 7;
-    const clicksByDate = {};
-    for (let i = days - 1; i >= 0; i--) {
-      const d = new Date();
-      d.setDate(d.getDate() - i);
-      const dateStr = d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-      clicksByDate[dateStr] = 0;
-    }
-
-    logs.forEach(log => {
-      const dateStr = new Date(log.timestamp).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-      if (clicksByDate[dateStr] !== undefined) {
-        clicksByDate[dateStr]++;
-      }
-    });
-
-    const chartData = Object.entries(clicksByDate).map(([date, count]) => ({ date, count }));
-    const maxCount = Math.max(...chartData.map(d => d.count), 5);
-
-    // SVG coordinate layout
-    const width = 450;
-    const height = 150;
-    const paddingLeft = 30;
-    const paddingRight = 15;
-    const paddingTop = 20;
-    const paddingBottom = 20;
-
-    const points = chartData.map((d, idx) => {
-      const x = paddingLeft + (idx / (chartData.length - 1)) * (width - paddingLeft - paddingRight);
-      const y = height - paddingBottom - ((d.count / maxCount) * (height - paddingTop - paddingBottom));
-      return { x, y, date: d.date, count: d.count };
-    });
-
-    const linePath = points.map((p, idx) => `${idx === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ');
-    const areaPath = points.length ? `${linePath} L ${points[points.length - 1].x} ${height - paddingBottom} L ${points[0].x} ${height - paddingBottom} Z` : '';
-
-    // Device breakdown
-    const devices = { Desktop: 0, Mobile: 0, Tablet: 0 };
-    const referrers = {};
-    const countries = {};
-
-    logs.forEach(log => {
-      if (devices[log.device] !== undefined) devices[log.device]++;
-      referrers[log.referer] = (referrers[log.referer] || 0) + 1;
-      countries[log.country] = (countries[log.country] || 0) + 1;
-    });
-
-    const totalLogs = logs.length || 1;
-
-    const topReferrers = Object.entries(referrers)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 4);
-
-    const topCountries = Object.entries(countries)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 4);
-
-    return (
-      <div>
-        <div className={styles.statsGrid}>
-          <div className={styles.statCard}>
-            <div className={styles.statVal}>{analyticsData.clicks}</div>
-            <div className={styles.statLabel}>Total Clicks</div>
-          </div>
-          <div className={styles.statCard}>
-            <div className={styles.statVal}>
-              {Object.keys(countries).length}
-            </div>
-            <div className={styles.statLabel}>Countries</div>
-          </div>
-          <div className={styles.statCard}>
-            <div className={styles.statVal}>
-              {Math.round((devices.Mobile / totalLogs) * 100)}%
-            </div>
-            <div className={styles.statLabel}>Mobile Traffic</div>
-          </div>
-          <div className={styles.statCard}>
-            <div className={styles.statVal}>
-              {topReferrers[0] ? topReferrers[0][0] : 'Direct'}
-            </div>
-            <div className={styles.statLabel}>Top Referrer</div>
-          </div>
-        </div>
-
-        <div className={styles.chartsGrid}>
-          <div className={styles.chartCard}>
-            <h3 className={styles.chartTitle}>Click Trend (Last 7 Days)</h3>
-            <div style={{ position: 'relative', width: '100%' }}>
-              <svg viewBox={`0 0 ${width} ${height}`} width="100%" height="100%" style={{ overflow: 'visible' }}>
-                <defs>
-                  <linearGradient id="chartGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="oklch(0.78 0.14 145)" stopOpacity="0.35" />
-                    <stop offset="100%" stopColor="oklch(0.78 0.14 145)" stopOpacity="0" />
-                  </linearGradient>
-                </defs>
-                {/* Grid Lines */}
-                <line x1={paddingLeft} y1={paddingTop} x2={width - paddingRight} y2={paddingTop} stroke="var(--border)" strokeWidth="0.5" strokeDasharray="3 3" />
-                <line x1={paddingLeft} y1={(height - paddingBottom + paddingTop) / 2} x2={width - paddingRight} y2={(height - paddingBottom + paddingTop) / 2} stroke="var(--border)" strokeWidth="0.5" strokeDasharray="3 3" />
-                <line x1={paddingLeft} y1={height - paddingBottom} x2={width - paddingRight} y2={height - paddingBottom} stroke="var(--border)" strokeWidth="1" />
-                
-                {/* Area under the line */}
-                {areaPath && <path d={areaPath} fill="url(#chartGradient)" />}
-                
-                {/* Main line */}
-                {linePath && <path d={linePath} fill="none" stroke="oklch(0.78 0.14 145)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />}
-                
-                {/* Dots and Labels */}
-                {points.map((p, idx) => (
-                  <g key={idx}>
-                    <circle cx={p.x} cy={p.y} r="3.5" fill="var(--bg)" stroke="oklch(0.78 0.14 145)" strokeWidth="1.5" />
-                    <text x={p.x} y={height - 5} fontSize="8" fill="var(--text-muted)" textAnchor="middle">{p.date}</text>
-                    <text x={p.x} y={p.y - 8} fontSize="9" fontWeight="500" fill="var(--text)" textAnchor="middle">{p.count}</text>
-                  </g>
-                ))}
-              </svg>
-            </div>
-          </div>
-
-          <div className={styles.chartCard}>
-            <h3 className={styles.chartTitle}>Device Distribution</h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', justifyContent: 'center', height: '100%' }}>
-              {[
-                { name: 'Desktop', val: devices.Desktop, color: 'oklch(0.78 0.14 145)' },
-                { name: 'Mobile', val: devices.Mobile, color: 'oklch(0.78 0.14 145)' },
-                { name: 'Tablet', val: devices.Tablet, color: 'oklch(0.65 0.01 240)' }
-              ].map((d, i) => {
-                const pct = Math.round((d.val / totalLogs) * 100) || 0;
-                return (
-                  <div key={i} className={styles.progressItem}>
-                    <div className={styles.progressHeader}>
-                      <span className={styles.progressName}>{d.name}</span>
-                      <span className={styles.progressValue}>{pct}% ({d.val})</span>
-                    </div>
-                    <div className={styles.progressBarTrack}>
-                      <div className={styles.progressBarFill} style={{ width: `${pct}%`, backgroundColor: d.color }}></div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-
-        <div className={styles.telemetryGrid}>
-          <div className={styles.chartCard}>
-            <h3 className={styles.chartTitle}>Top Referrers</h3>
-            <div className={styles.progressList}>
-              {topReferrers.length > 0 ? topReferrers.map(([ref, count], idx) => {
-                const pct = Math.round((count / totalLogs) * 100);
-                return (
-                  <div key={idx} className={styles.progressItem}>
-                    <div className={styles.progressHeader}>
-                      <span className={styles.progressName}>{ref}</span>
-                      <span className={styles.progressValue}>{pct}% ({count})</span>
-                    </div>
-                    <div className={styles.progressBarTrack}>
-                      <div className={styles.progressBarFill} style={{ width: `${pct}%` }}></div>
-                    </div>
-                  </div>
-                );
-              }) : (
-                <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>No referrer data available</div>
-              )}
-            </div>
-          </div>
-
-          <div className={styles.chartCard}>
-            <h3 className={styles.chartTitle}>Top Countries</h3>
-            <div className={styles.progressList}>
-              {topCountries.length > 0 ? topCountries.map(([code, count], idx) => {
-                const pct = Math.round((count / totalLogs) * 100);
-                return (
-                  <div key={idx} className={styles.progressItem}>
-                    <div className={styles.progressHeader}>
-                      <span className={styles.progressName}>{code}</span>
-                      <span className={styles.progressValue}>{pct}% ({count})</span>
-                    </div>
-                    <div className={styles.progressBarTrack}>
-                      <div className={styles.progressBarFill} style={{ width: `${pct}%` }}></div>
-                    </div>
-                  </div>
-                );
-              }) : (
-                <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>No country data available</div>
-              )}
-            </div>
-          </div>
-        </div>
-
-        <div>
-          <h3 className={styles.logsTitle}>Recent Redirections Log</h3>
-          <div className={styles.logList}>
-            <div className={`${styles.logRow} ${styles.logHeader}`}>
-              <div>Timestamp</div>
-              <div>Device</div>
-              <div>Referrer</div>
-              <div>Country</div>
-            </div>
-            {logs.length > 0 ? logs.map((log, idx) => (
-              <div key={idx} className={styles.logRow}>
-                <div className={styles.logTime} title={new Date(log.timestamp).toLocaleString()}>
-                  {new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                </div>
-                <div className={styles.logDevice}>{log.browser} / {log.os}</div>
-                <div className={styles.logReferer} title={log.referer}>{log.referer}</div>
-                <div className={styles.logCountry}>{log.country}</div>
-              </div>
-            )) : (
-              <div style={{ padding: '1rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-                No clicks registered yet.
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-    );
-  };
-
   return (
-    <div className={styles.container}>
+    <div className={styles.container} style={{ position: 'relative' }}>
+      <LightRays
+        raysOrigin="top-center"
+        raysColor="#22c55e"
+        raysSpeed={0.8}
+        lightSpread={0.6}
+        rayLength={1.4}
+        followMouse={true}
+        mouseInfluence={0.08}
+        noiseAmount={0.05}
+        distortion={0.02}
+        fadeDistance={1.2}
+        saturation={0.7}
+      />
       {envWarning && (
         <div className={styles.warningBanner}>
           <AlertTriangle size={16} />
           <span>
-            <strong>Database configuration missing:</strong> Please copy <code>.env.example</code> to <code>.env.local</code> and fill in your Upstash Redis credentials to activate the shortener backend.
+            <strong>Database configuration missing:</strong> Upstash Redis credentials are required. Fill in your <code>.env.local</code> file to run the shortening service.
           </span>
         </div>
       )}
 
+      {/* Navigation */}
       <nav className={styles.nav}>
-        <a href="/" className={styles.navBrand}>tiny<span className={styles.navBrandSpan}>-</span>to</a>
-        <div className={styles.navUserSection}>
+        <a href="/" className={styles.navBrand}>
+          <img src="/logo.svg" alt="tiny.to Logo" className={styles.navLogo} />
+          tiny<span className={styles.navBrandDot}>.</span>to
+        </a>
+        <div className={styles.navLinks}>
+          <a className={styles.navLink} onClick={() => alert('Features: Edge redirection, detailed weekly reports, customized aliases.')}>Features</a>
           {user ? (
             <>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <span className={styles.userEmail}>{user.email}</span>
-                <button onClick={() => router.push('/dashboard')} className={styles.navBtn} style={{ marginLeft: '0.5rem', padding: '0.3rem 0.6rem' }}>
-                  Dashboard
-                </button>
-              </div>
-              <button onClick={handleSignOut} className={styles.signOutBtn}>
-                <LogOut size={16} style={{ verticalAlign: 'middle', marginRight: '4px' }} />
-                Sign Out
+              <button onClick={() => router.push('/dashboard')} className={styles.signInBtn}>
+                Dashboard
+              </button>
+              <button onClick={handleSignOut} className={styles.signOutBtn} aria-label="Sign out">
+                <LogOut size={14} />
               </button>
             </>
           ) : (
-            <button onClick={() => { setAuthTab('login'); setAuthModalOpen(true); }} className={styles.navBtn}>
-              Sign In
+            <button onClick={() => router.push('/login')} className={styles.signInBtn}>
+              Log In
             </button>
           )}
         </div>
       </nav>
 
-      <header className={styles.header}>
-        <h1 className={styles.logo}>tiny<span className={styles.logoDot}>-</span>to</h1>
-        <p className={styles.tagline}>Ultra-minimalist, privacy-friendly, edge-fast URL shortening.</p>
-      </header>
+      {/* Main hero & inputs */}
+      <main className={styles.mainContent}>
+        <header className={styles.header}>
+          <TextType
+            text={["tiny.to", "shorten links", "track clicks"]}
+            typingSpeed={75}
+            pauseDuration={[4000, 1500, 1500]}
+            showCursor={true}
+            cursorCharacter="|"
+            cursorClassName={styles.logoDot}
+            className={styles.logo}
+            as="h1"
+          />
+          <p className={styles.tagline}>Ultra-minimalist, privacy-friendly, edge-fast URL shortening.</p>
+        </header>
 
-      <div className={styles.mainContent}>
         <form onSubmit={handleSubmit} className={styles.form}>
           <div className={styles.inputWrapper}>
             <Link2 className={styles.inputIcon} size={18} />
@@ -538,14 +209,14 @@ export default function Home() {
             />
             <button type="submit" className={styles.button} disabled={loading || !url}>
               {loading ? 'Shortening...' : 'Shorten'}
-              <ArrowRight size={16} className={styles.buttonIcon} />
+              <ArrowRight size={16} />
             </button>
           </div>
 
           <div className={styles.optionsRow}>
             <div className={styles.aliasInputWrapper}>
               <span className={styles.aliasPrefix}>
-                {(mounted ? window.location.host : 'tiny-to.vercel.app') + '/'}
+                {(mounted ? window.location.host : 'tiny.to') + '/'}
               </span>
               <input
                 type="text"
@@ -557,9 +228,13 @@ export default function Home() {
                 maxLength={30}
               />
             </div>
-            {!user && (
-              <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                💡 <button type="button" onClick={() => { setAuthTab('signup'); setAuthModalOpen(true); }} style={{ background: 'none', border: 'none', color: 'var(--accent)', cursor: 'pointer', textDecoration: 'underline', padding: 0 }}>Sign up</button> to track clicks and secure your custom links.
+            {!user ? (
+              <span className={styles.infoNote}>
+                💡 <button type="button" onClick={() => router.push('/signup')} className={styles.infoLink}>Sign-up</button> to track clicks and secure your links.
+              </span>
+            ) : (
+              <span className={styles.infoNote}>
+                Logged in as <strong>{user.email}</strong>.
               </span>
             )}
           </div>
@@ -578,21 +253,28 @@ export default function Home() {
                 className={`${styles.copyButton} ${copied ? styles.copySuccess : ''}`}
                 aria-label="Copy link"
               >
-                {copied ? <Check size={16} /> : <Copy size={16} />}
+                {copied ? <Check size={14} /> : <Copy size={14} />}
                 <span>{copied ? 'Copied' : 'Copy'}</span>
               </button>
             </div>
           </div>
         )}
 
+        {/* History Section */}
         <div className={styles.historySection}>
-          <h2 className={styles.historyTitle}>{user ? 'Your Links' : 'Recent Links (Sign in to save)'}</h2>
+          <div className={styles.historyHeader}>
+            <h2 className={styles.historyTitle}>
+              {user ? 'Your Links' : 'Recent Links (Sign in to save)'}
+            </h2>
+            <div className={styles.historyDivider}></div>
+          </div>
+
           {links.length > 0 ? (
             <div className={styles.historyList}>
               {links.map((item, idx) => {
-                const shortDomain = process.env.NEXT_PUBLIC_SHORT_DOMAIN || 'tiny-to.vercel.app';
+                const shortDomain = process.env.NEXT_PUBLIC_SHORT_DOMAIN || (mounted ? window.location.host : 'tiny.to');
                 const shortUrl = `${shortDomain}/${item.shortCode}`;
-                const localUrl = typeof window !== 'undefined' ? `${window.location.origin}/${item.shortCode}` : shortUrl;
+                const localUrl = mounted ? `${window.location.origin}/${item.shortCode}` : shortUrl;
 
                 return (
                   <div key={idx} className={styles.historyItem}>
@@ -638,136 +320,19 @@ export default function Home() {
             </div>
           ) : (
             <div className={styles.emptyHistory}>
-              <span>{user ? 'You haven\'t shortened any links yet.' : 'Links you shorten while logged in will show here.'}</span>
+              <Clock size={32} className={styles.emptyIcon} />
+              <span className={styles.emptyText}>
+                {user ? "You haven't shortened any links yet." : "Links you shorten while logged in will show here."}
+              </span>
             </div>
           )}
         </div>
-      </div>
+      </main>
 
+      {/* Footer */}
       <footer className={styles.footer}>
-        <span>Free. Open Source. With Premium Link Analytics.</span>
+        <span>Free. Open Source. With Link Analytics.</span>
       </footer>
-
-      {/* Authentication Modal */}
-      {authModalOpen && (
-        <div className={styles.modalOverlay} onClick={() => setAuthModalOpen(false)}>
-          <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
-            <div className={styles.modalHeader}>
-              <h2 className={styles.modalTitle}>{authTab === 'login' ? 'Sign In' : 'Create Account'}</h2>
-              <button className={styles.modalCloseBtn} onClick={() => setAuthModalOpen(false)}>✕</button>
-            </div>
-            <div className={styles.tabHeader}>
-              <button 
-                className={`${styles.tabBtn} ${authTab === 'login' ? styles.activeTab : ''}`}
-                onClick={() => setAuthTab('login')}
-              >
-                Sign In
-              </button>
-              <button 
-                className={`${styles.tabBtn} ${authTab === 'signup' ? styles.activeTab : ''}`}
-                onClick={() => setAuthTab('signup')}
-              >
-                Sign Up
-              </button>
-            </div>
-            <div className={styles.modalBody}>
-              <button 
-                type="button" 
-                onClick={() => window.location.href = '/api/auth/google'}
-                className={styles.googleBtn}
-              >
-                <svg width="18" height="18" viewBox="0 0 18 18" style={{ marginRight: '8px' }}>
-                  <path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z" fill="#4285F4"/>
-                  <path d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.258c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332C2.438 15.983 5.482 18 9 18z" fill="#34A853"/>
-                  <path d="M3.964 10.707c-.18-.54-.282-1.119-.282-1.707s.102-1.167.282-1.707V4.961H.957C.347 6.173 0 7.548 0 9s.347 2.827.957 4.039l3.007-2.332z" fill="#FBBC05"/>
-                  <path d="M9 3.58c1.32 0 2.505.454 3.44 1.347l2.582-2.58C13.463.891 11.426 0 9 0 5.482 0 2.438 2.017.957 4.961l3.007 2.332C4.672 5.164 6.656 3.58 9 3.58z" fill="#EA4335"/>
-                </svg>
-                Continue with Google
-              </button>
-
-              <div className={styles.divider}>or</div>
-
-              <form onSubmit={handleAuthSubmit} className={styles.authForm}>
-
-
-                <div className={styles.fieldGroup}>
-                  <label className={styles.fieldLabel}>Email Address</label>
-                  <input 
-                    type="email" 
-                    value={authEmail} 
-                    onChange={(e) => setAuthEmail(e.target.value)}
-                    required
-                    className={styles.formInput}
-                    placeholder="name@example.com"
-                  />
-                </div>
-                <div className={styles.fieldGroup}>
-                  <label className={styles.fieldLabel}>Password</label>
-                  <input 
-                    type="password" 
-                    value={authPassword} 
-                    onChange={(e) => setAuthPassword(e.target.value)}
-                    required
-                    className={styles.formInput}
-                    placeholder="••••••••"
-                  />
-                </div>
-
-                {authTab === 'signup' && (
-                  <label className={styles.checkboxLabel}>
-                    <input
-                      type="checkbox"
-                      checked={authEmailAnalytics}
-                      onChange={(e) => setAuthEmailAnalytics(e.target.checked)}
-                      className={styles.checkboxInput}
-                    />
-                    <span>Send me weekly analytics reports via email</span>
-                  </label>
-                )}
-
-                {authError && <div className={styles.errorMessage} style={{ margin: 0 }}>{authError}</div>}
-                
-                <button type="submit" className={styles.submitBtn} disabled={authLoading}>
-                  {authLoading ? 'Please wait...' : authTab === 'login' ? 'Sign In' : 'Create Account'}
-                </button>
-              </form>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Analytics Dashboard Modal */}
-      {analyticsOpen && (
-        <div className={styles.modalOverlay} onClick={() => setAnalyticsOpen(false)}>
-          <div className={`${styles.modal} ${styles.modalLarge}`} onClick={(e) => e.stopPropagation()}>
-            <div className={styles.modalHeader}>
-              <div>
-                <h2 className={styles.modalTitle}>Link Analytics</h2>
-                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
-                  /{analyticsCode}
-                </span>
-              </div>
-              <button className={styles.modalCloseBtn} onClick={() => setAnalyticsOpen(false)}>✕</button>
-            </div>
-            <div className={styles.modalBody}>
-              {analyticsLoading ? (
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '4rem 0', gap: '1rem' }}>
-                  <RefreshCw size={32} style={{ animation: 'spin 1.5s linear infinite', color: 'var(--accent)' }} />
-                  <span style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>Retrieving redirection telemetry...</span>
-                </div>
-              ) : (
-                renderAnalyticsDashboard()
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-      <style jsx global>{`
-        @keyframes spin {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
-        }
-      `}</style>
     </div>
   );
 }

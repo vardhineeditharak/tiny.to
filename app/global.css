@@ -1,23 +1,28 @@
-/* Core Reset & Variables */
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
 
 :root {
-  --bg: oklch(0.08 0.01 240);
-  --text: oklch(0.97 0.005 240);
-  --text-muted: oklch(0.65 0.01 240);
-  --accent: oklch(0.78 0.14 145);
-  --accent-hover: oklch(0.83 0.16 145);
-  --border: oklch(0.18 0.01 240);
-  --control-bg: oklch(0.12 0.01 240);
-  --control-bg-hover: oklch(0.15 0.01 240);
-  --error: oklch(0.65 0.18 20);
-  --success: oklch(0.78 0.14 145);
-  
-  --font-sans: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --bg: #000000;
+  --surface: #0e0e0e;
+  --surface-bright: #161616;
+  --text: #ffffff;
+  --text-muted: #8e8e8f;
+  --primary: #22c55e;
+  --primary-hover: #4ae176;
+  --border: #1a1a1a;
+  --border-focus: #333333;
+  --error: #ffb4ab;
+
+  --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
-  
+
   --ease: cubic-bezier(0.16, 1, 0.3, 1);
-  --duration: 0.3s;
+  --duration: 0.2s;
+
+  /* Softer component borders variables */
+  --rounded-sm: 8px;
+  --rounded-md: 14px;
+  --rounded-lg: 18px;
+  --rounded-xl: 26px;
 }
 
 *, *::before, *::after {
@@ -28,32 +33,37 @@
 
 html, body {
   background-color: var(--bg);
-  background-image: radial-gradient(oklch(1 0 0 / 0.03) 1px, transparent 1px);
+  background-image: radial-gradient(rgba(255, 255, 255, 0.08) 1.2px, transparent 1.2px);
   background-size: 24px 24px;
+  background-position: center;
   color: var(--text);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   line-height: 1.6;
+  min-height: 100vh;
 }
 
-/* Custom Selection & Focus Ring */
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button, input {
+  font-family: inherit;
+  transition: all var(--duration) var(--ease);
+}
+
 ::selection {
-  background-color: var(--accent);
+  background-color: var(--primary);
   color: var(--bg);
 }
 
 *:focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 1px solid var(--primary);
   outline-offset: 4px;
 }
 
-/* Base interactive transitions */
-a, button, input {
-  transition: all var(--duration) var(--ease);
-}
-
-/* Reduced Motion Override */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;

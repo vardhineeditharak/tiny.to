@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { redis } from '../../../../lib/redis';
+import { logger } from '../../../../lib/logger';
 
 export async function GET(request, { params }) {
   const { code } = params;
@@ -67,7 +68,7 @@ export async function GET(request, { params }) {
       analytics: clickLogs,
     });
   } catch (error) {
-    console.error('Analytics endpoint error:', error);
+    logger.error('Analytics endpoint error:', error);
     return NextResponse.json({ error: 'Internal server error.' }, { status: 500 });
   }
 }

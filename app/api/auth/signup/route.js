@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { redis } from '../../../../lib/redis';
+import { logger } from '../../../../lib/logger';
 
 async function hashPassword(password) {
   const encoder = new TextEncoder();
@@ -95,7 +96,7 @@ export async function POST(request) {
       }
     });
   } catch (error) {
-    console.error('Signup error:', error);
+    logger.error('Signup error:', error);
     return NextResponse.json({ error: 'Internal server error.' }, { status: 500 });
   }
 }

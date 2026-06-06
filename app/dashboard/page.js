@@ -3,10 +3,11 @@
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { 
-  Link2, Copy, Check, ExternalLink, AlertTriangle, ArrowRight, Trash2,
-  User, Shield, BarChart3, LogOut, RefreshCw, ChevronRight, Home, Settings
+  Copy, Check, ExternalLink, ArrowRight, Home, Settings,
+  User, BarChart3, LogOut, RefreshCw, ChevronRight, Trash2
 } from 'lucide-react';
 import styles from './page.module.css';
+import LightRays from '../components/LightRays';
 
 function DashboardContent() {
   const router = useRouter();
@@ -40,7 +41,7 @@ function DashboardContent() {
           setSelectedCode(data.links[0].shortCode);
         }
       } else {
-        router.push('/?showLogin=true');
+        router.push('/login');
       }
     } catch (err) {
       console.error('Failed to load session:', err);
@@ -57,7 +58,6 @@ function DashboardContent() {
   useEffect(() => {
     if (selectedCode) {
       fetchAnalytics(selectedCode);
-      // Update query param without reloading
       const url = new URL(window.location);
       url.searchParams.set('code', selectedCode);
       window.history.replaceState({}, '', url);
@@ -108,6 +108,26 @@ function DashboardContent() {
     }
   };
 
+  const handleDeleteLink = async (code) => {
+    try {
+      const res = await fetch(`/api/shorten?code=${code}`, {
+        method: 'DELETE'
+      });
+      if (res.ok) {
+        setLinks(prev => prev.filter(item => item.shortCode !== code));
+        if (selectedCode === code) {
+          setSelectedCode('');
+          setAnalyticsData(null);
+        }
+      } else {
+        const data = await res.json();
+        alert(data.error || 'Failed to delete link.');
+      }
+    } catch (err) {
+      console.error('Failed to delete link:', err);
+    }
+  };
+
   const copyToClipboard = async (code, text) => {
     try {
       const textToCopy = text.startsWith('http') ? text : `https://${text}`;
@@ -119,7 +139,7 @@ function DashboardContent() {
     }
   };
 
-  // Render SVG Click graph
+  // Render SVG Click Graph
   const renderClickTrendGraph = () => {
     if (!analyticsData || !analyticsData.analytics) return null;
     const logs = analyticsData.analytics;
@@ -163,22 +183,22 @@ function DashboardContent() {
       <svg viewBox={`0 0 ${width} ${height}`} width="100%" height="100%" style={{ overflow: 'visible' }}>
         <defs>
           <linearGradient id="dashGradient" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="oklch(0.78 0.14 145)" stopOpacity="0.35" />
-            <stop offset="100%" stopColor="oklch(0.78 0.14 145)" stopOpacity="0" />
+            <stop offset="0%" stopColor="#22c55e" stopOpacity="0.25" />
+            <stop offset="100%" stopColor="#22c55e" stopOpacity="0" />
           </linearGradient>
         </defs>
-        <line x1={paddingLeft} y1={paddingTop} x2={width - paddingRight} y2={paddingTop} stroke="var(--border)" strokeWidth="0.5" strokeDasharray="3 3" />
-        <line x1={paddingLeft} y1={(height - paddingBottom + paddingTop) / 2} x2={width - paddingRight} y2={(height - paddingBottom + paddingTop) / 2} stroke="var(--border)" strokeWidth="0.5" strokeDasharray="3 3" />
-        <line x1={paddingLeft} y1={height - paddingBottom} x2={width - paddingRight} y2={height - paddingBottom} stroke="var(--border)" strokeWidth="1" />
+        <line x1={paddingLeft} y1={paddingTop} x2={width - paddingRight} y2={paddingTop} stroke="#1a1a1a" strokeWidth="0.5" strokeDasharray="3 3" />
+        <line x1={paddingLeft} y1={(height - paddingBottom + paddingTop) / 2} x2={width - paddingRight} y2={(height - paddingBottom + paddingTop) / 2} stroke="#1a1a1a" strokeWidth="0.5" strokeDasharray="3 3" />
+        <line x1={paddingLeft} y1={height - paddingBottom} x2={width - paddingRight} y2={height - paddingBottom} stroke="#1a1a1a" strokeWidth="1" />
         
         {areaPath && <path d={areaPath} fill="url(#dashGradient)" />}
-        {linePath && <path d={linePath} fill="none" stroke="oklch(0.78 0.14 145)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />}
+        {linePath && <path d={linePath} fill="none" stroke="#22c55e" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />}
         
         {points.map((p, idx) => (
           <g key={idx}>
-            <circle cx={p.x} cy={p.y} r="4" fill="var(--bg)" stroke="oklch(0.78 0.14 145)" strokeWidth="2" />
-            <text x={p.x} y={height - 8} fontSize="9" fill="var(--text-muted)" textAnchor="middle">{p.date}</text>
-            <text x={p.x} y={p.y - 10} fontSize="10" fontWeight="600" fill="var(--text)" textAnchor="middle">{p.count}</text>
+            <circle cx={p.x} cy={p.y} r="4" fill="#000000" stroke="#22c55e" strokeWidth="2" />
+            <text x={p.x} y={height - 8} fontSize="9" fill="#8e8e8f" textAnchor="middle">{p.date}</text>
+            <text x={p.x} y={p.y - 10} fontSize="10" fontWeight="600" fill="#ffffff" textAnchor="middle">{p.count}</text>
           </g>
         ))}
       </svg>
@@ -211,45 +231,87 @@ function DashboardContent() {
   const topCountries = Object.entries(countries).sort((a, b) => b[1] - a[1]).slice(0, 4);
 
   return (
-    <div className={styles.container}>
+    <div className={styles.container} style={{ position: 'relative' }}>
+      <LightRays
+        raysOrigin="top-center"
+        raysColor="#22c55e"
+        raysSpeed={0.5}
+        lightSpread={0.4}
+        rayLength={1.0}
+        followMouse={true}
+        mouseInfluence={0.05}
+        noiseAmount={0.03}
+        distortion={0.01}
+        fadeDistance={0.8}
+        saturation={0.4}
+      />
       <header className={styles.nav}>
-        <a href="/" className={styles.navBrand}>tiny<span className={styles.navBrandSpan}>-</span>to</a>
+        <a href="/" className={styles.navBrand}>
+          <img src="/logo.svg" alt="tiny.to Logo" className={styles.navLogo} />
+          tiny<span className={styles.navBrandSpan}>.</span>to
+        </a>
         <div className={styles.navActions}>
           <button onClick={() => router.push('/')} className={styles.iconBtn}>
-            <Home size={16} /> Home
+            <Home size={15} /> Home
           </button>
           <button onClick={() => setShowSettings(!showSettings)} className={`${styles.iconBtn} ${showSettings ? styles.activeBtn : ''}`}>
-            <Settings size={16} /> Account
+            <Settings size={15} /> Account
           </button>
           <button onClick={handleSignOut} className={styles.signOutBtn}>
-            <LogOut size={16} /> Sign Out
+            <LogOut size={15} /> Sign Out
           </button>
         </div>
       </header>
 
-      {showSettings && user && (
-        <div className={styles.settingsSection}>
-          <h3 className={styles.settingsTitle}>
-            <User size={18} className={styles.logoDot} />
-            Mailing Settings
-          </h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            <label className={styles.checkboxLabel}>
-              <input
-                type="checkbox"
-                checked={!!user.emailAnalyticsEnabled}
-                onChange={(e) => handleUpdateSettings({ emailAnalyticsEnabled: e.target.checked })}
-                className={styles.checkboxInput}
-              />
-              <span>
-                <strong>Email weekly reports:</strong> Send a summary of click analytics to <strong>{user.email}</strong> every Monday.
-              </span>
-            </label>
+      {showSettings && user ? (
+        <div className={styles.accountPageContainer}>
+          <div className={styles.accountCard}>
+            <h2 className={styles.accountSectionTitle}>Account Details</h2>
+            <div className={styles.accountDetailsGrid}>
+              <div className={styles.detailField}>
+                <span className={styles.detailLabel}>Display Name</span>
+                <span className={styles.detailValue}>{user.name || 'N/A'}</span>
+              </div>
+              <div className={styles.detailField}>
+                <span className={styles.detailLabel}>Email Address</span>
+                <span className={styles.detailValue}>{user.email}</span>
+              </div>
+              <div className={styles.detailField}>
+                <span className={styles.detailLabel}>Account Status</span>
+                <span className={styles.detailValue}>
+                  {user.isPremium ? (
+                    <span className={styles.premiumBadge}>Premium</span>
+                  ) : (
+                    <span className={styles.standardBadge}>Standard</span>
+                  )}
+                </span>
+              </div>
+              <div className={styles.detailField}>
+                <span className={styles.detailLabel}>Login Provider</span>
+                <span className={styles.detailValue} style={{ textTransform: 'capitalize' }}>{user.provider || 'Local'}</span>
+              </div>
+            </div>
+          </div>
+
+          <div className={styles.accountCard}>
+            <h2 className={styles.accountSectionTitle}>Mailing Settings</h2>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <label className={styles.checkboxLabel}>
+                <input
+                  type="checkbox"
+                  checked={!!user.emailAnalyticsEnabled}
+                  onChange={(e) => handleUpdateSettings({ emailAnalyticsEnabled: e.target.checked })}
+                  className={styles.checkboxInput}
+                />
+                <span>
+                  <strong>Email weekly reports:</strong> Send a summary of click analytics to <strong>{user.email}</strong> every Monday.
+                </span>
+              </label>
+            </div>
           </div>
         </div>
-      )}
-
-      <div className={styles.dashboardLayout}>
+      ) : (
+        <div className={styles.dashboardLayout}>
         {/* Sidebar: Links list */}
         <aside className={styles.sidebar}>
           <h2 className={styles.sidebarTitle}>Your Links ({links.length})</h2>
@@ -257,7 +319,7 @@ function DashboardContent() {
             <div className={styles.linksList}>
               {links.map((item) => {
                 const isSelected = item.shortCode === selectedCode;
-                const shortDomain = process.env.NEXT_PUBLIC_SHORT_DOMAIN || 'tiny-to.vercel.app';
+                const shortDomain = process.env.NEXT_PUBLIC_SHORT_DOMAIN || (typeof window !== 'undefined' ? window.location.host : 'tiny.to');
                 const shortUrl = `${shortDomain}/${item.shortCode}`;
 
                 return (
@@ -273,7 +335,21 @@ function DashboardContent() {
                       </div>
                       <p className={styles.originalLinkUrl} title={item.original}>{item.original}</p>
                     </div>
-                    <ChevronRight size={16} className={styles.chevronIcon} />
+                    <div className={styles.linkCardActions}>
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (confirm('Are you sure you want to delete this link?')) {
+                            handleDeleteLink(item.shortCode);
+                          }
+                        }}
+                        className={styles.deleteLinkBtn}
+                        aria-label="Delete link"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                      <ChevronRight size={16} className={styles.chevronIcon} />
+                    </div>
                   </div>
                 );
               })}
@@ -301,12 +377,12 @@ function DashboardContent() {
                     rel="noopener noreferrer"
                     className={styles.shortLinkUrlText}
                   >
-                    {process.env.NEXT_PUBLIC_SHORT_DOMAIN || 'tiny-to.vercel.app'}/{selectedCode}
+                    {(process.env.NEXT_PUBLIC_SHORT_DOMAIN || (typeof window !== 'undefined' ? window.location.host : 'tiny.to'))}/{selectedCode}
                     <ExternalLink size={12} style={{ marginLeft: '4px' }} />
                   </a>
                 </div>
                 <button 
-                  onClick={() => copyToClipboard(selectedCode, `${process.env.NEXT_PUBLIC_SHORT_DOMAIN || 'tiny-to.vercel.app'}/${selectedCode}`)}
+                  onClick={() => copyToClipboard(selectedCode, `${process.env.NEXT_PUBLIC_SHORT_DOMAIN || (typeof window !== 'undefined' ? window.location.host : 'tiny.to')}/${selectedCode}`)}
                   className={`${styles.copyBtn} ${copiedCode === selectedCode ? styles.copySuccess : ''}`}
                 >
                   {copiedCode === selectedCode ? <Check size={14} /> : <Copy size={14} />}
@@ -355,9 +431,9 @@ function DashboardContent() {
                       <h3 className={styles.chartTitle}>Device Profile</h3>
                       <div className={styles.progressContainer}>
                         {[
-                          { name: 'Desktop', val: devices.Desktop, color: 'oklch(0.78 0.14 145)' },
-                          { name: 'Mobile', val: devices.Mobile, color: 'oklch(0.78 0.14 145)' },
-                          { name: 'Tablet', val: devices.Tablet, color: 'oklch(0.65 0.01 240)' }
+                          { name: 'Desktop', val: devices.Desktop, color: '#22c55e' },
+                          { name: 'Mobile', val: devices.Mobile, color: '#4ae176' },
+                          { name: 'Tablet', val: devices.Tablet, color: '#8e8e8f' }
                         ].map((d, idx) => {
                           const pct = Math.round((d.val / totalClicks) * 100) || 0;
                           return (
@@ -443,7 +519,7 @@ function DashboardContent() {
                           <div className={styles.logCountry}>{log.country}</div>
                         </div>
                       )) : (
-                        <div className={styles.emptyDataText} style={{ padding: '2rem', textAlign: 'center' }}>
+                        <div className={styles.emptyDataText} style={{ padding: '20px', textAlign: 'center' }}>
                           No click redirects logged yet.
                         </div>
                       )}
@@ -461,6 +537,7 @@ function DashboardContent() {
           )}
         </main>
       </div>
+      )}
     </div>
   );
 }

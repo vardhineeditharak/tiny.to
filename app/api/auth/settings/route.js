@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { redis } from '../../../../lib/redis';
+import { logger } from '../../../../lib/logger';
 
 export async function POST(request) {
   if (!redis) {
@@ -51,7 +52,7 @@ export async function POST(request) {
       }
     });
   } catch (error) {
-    console.error('Settings update error:', error);
+    logger.error('Settings update error:', error);
     return NextResponse.json({ error: 'Internal server error.' }, { status: 500 });
   }
 }
