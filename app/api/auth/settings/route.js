@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { redis } from '../../../../lib/redis';
 import { logger } from '../../../../lib/logger';
+import { hashPassword } from '../../../../lib/auth';
 
 export async function POST(request) {
   if (!redis) {
@@ -30,11 +31,27 @@ export async function POST(request) {
     }
 
     const user = typeof userJson === 'string' ? JSON.parse(userJson) : userJson;
-    const { name, phone, emailAnalyticsEnabled } = await request.json();
+    const { name, phone, emailAnalyticsEnabled, oldPassword, newPassword } = await request.json();
 
     if (name !== undefined) user.name = name;
     if (phone !== undefined) user.phone = phone;
     if (emailAnalyticsEnabled !== undefined) user.emailAnalyticsEnabled = !!emailAnalyticsEnabled;
+
+    if (newPassword !== undefined) {
+      if (user.passwordHash) {
+        if (!oldPassword) {
+          return NextResponse.json({ error: 'Current password is required to change password.' }, { status: 400 });
+        }
+        const oldHash = await hashPassword(oldPassword);
+        if (oldHash !== user.passwordHash) {
+          return NextResponse.json({ error: 'Incorrect current password.' }, { status: 400 });
+        }
+      }
+      if (newPassword.length < 6) {
+        return NextResponse.json({ error: 'New password must be at least 6 characters.' }, { status: 400 });
+      }
+      user.passwordHash = await hashPassword(newPassword);
+    }
 
     // Save updated user data
     await redis.set(`user:${email}`, JSON.stringify(user));

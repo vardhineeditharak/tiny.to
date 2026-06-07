@@ -9,6 +9,16 @@ import {
 import styles from './page.module.css';
 import LightRays from '../components/LightRays';
 
+const getCountryName = (code) => {
+  if (!code) return 'Unknown';
+  try {
+    const regionNames = new Intl.DisplayNames(['en'], { type: 'region' });
+    return regionNames.of(code.toUpperCase()) || code;
+  } catch (_) {
+    return code;
+  }
+};
+
 function DashboardContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -27,6 +37,11 @@ function DashboardContent() {
 
   // Settings states
   const [showSettings, setShowSettings] = useState(false);
+  const [oldPassword, setOldPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [passwordError, setPasswordError] = useState('');
+  const [passwordSuccess, setPasswordSuccess] = useState('');
 
   const fetchUserSession = async () => {
     try {
@@ -105,6 +120,43 @@ function DashboardContent() {
       }
     } catch (err) {
       console.error('Failed to update settings:', err);
+    }
+  };
+
+  const handlePasswordChange = async (e) => {
+    e.preventDefault();
+    setPasswordError('');
+    setPasswordSuccess('');
+
+    if (newPassword.length < 6) {
+      setPasswordError('New password must be at least 6 characters.');
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      setPasswordError('New passwords do not match.');
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/auth/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ oldPassword: oldPassword || undefined, newPassword })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to update password.');
+      }
+      setPasswordSuccess('Password updated successfully.');
+      setOldPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+      if (data.user) {
+        setUser(data.user);
+      }
+    } catch (err) {
+      setPasswordError(err.message);
     }
   };
 
@@ -255,7 +307,15 @@ function DashboardContent() {
             <Home size={15} /> Home
           </button>
           <button onClick={() => setShowSettings(!showSettings)} className={`${styles.iconBtn} ${showSettings ? styles.activeBtn : ''}`}>
-            <Settings size={15} /> Account
+            {showSettings ? (
+              <>
+                <BarChart3 size={15} /> Analytics
+              </>
+            ) : (
+              <>
+                <Settings size={15} /> Account
+              </>
+            )}
           </button>
           <button onClick={handleSignOut} className={styles.signOutBtn}>
             <LogOut size={15} /> Sign Out
@@ -308,6 +368,62 @@ function DashboardContent() {
                 </span>
               </label>
             </div>
+          </div>
+
+          <div className={styles.accountCard}>
+            <h2 className={styles.accountSectionTitle}>Security & Password</h2>
+            {user.provider === 'google' && !user.passwordHash && (
+              <p className={styles.detailLabel} style={{ marginBottom: '16px', textTransform: 'none', lineHeight: '1.4' }}>
+                💡 You registered via Google. Set a password below to enable standard email/password login in addition to Google OAuth.
+              </p>
+            )}
+            
+            <form onSubmit={handlePasswordChange} className={styles.passwordForm}>
+              {user.passwordHash ? (
+                <div className={styles.passwordInputWrapper}>
+                  <label className={styles.detailLabel}>Current Password</label>
+                  <input
+                    type="password"
+                    required
+                    value={oldPassword}
+                    onChange={(e) => setOldPassword(e.target.value)}
+                    className={styles.passwordInput}
+                    placeholder="••••••••"
+                  />
+                </div>
+              ) : null}
+
+              <div className={styles.passwordInputWrapper}>
+                <label className={styles.detailLabel}>New Password</label>
+                <input
+                  type="password"
+                  required
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  className={styles.passwordInput}
+                  placeholder="••••••••"
+                />
+              </div>
+
+              <div className={styles.passwordInputWrapper}>
+                <label className={styles.detailLabel}>Confirm New Password</label>
+                <input
+                  type="password"
+                  required
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  className={styles.passwordInput}
+                  placeholder="••••••••"
+                />
+              </div>
+
+              {passwordError && <div className={styles.errorMessage} style={{ margin: 0 }}>{passwordError}</div>}
+              {passwordSuccess && <div className={styles.successMessage}>{passwordSuccess}</div>}
+
+              <button type="submit" className={styles.passwordSubmitBtn}>
+                {user.passwordHash ? 'Change Password' : 'Set Password'}
+              </button>
+            </form>
           </div>
         </div>
       ) : (
@@ -412,7 +528,9 @@ function DashboardContent() {
                       <span className={styles.statLabel}>Mobile Traffic</span>
                     </div>
                     <div className={styles.statCard}>
-                      <span className={styles.statVal}>{topReferrers[0] ? topReferrers[0][0] : 'Direct'}</span>
+                      <span className={styles.statValText} title={topReferrers[0] ? topReferrers[0][0] : 'Direct'}>
+                        {topReferrers[0] ? topReferrers[0][0] : 'Direct'}
+                      </span>
                       <span className={styles.statLabel}>Top Referrer</span>
                     </div>
                   </div>
@@ -484,7 +602,7 @@ function DashboardContent() {
                           return (
                             <div key={idx} className={styles.progressItem}>
                               <div className={styles.progressHeader}>
-                                <span>{code}</span>
+                                <span>{getCountryName(code)}</span>
                                 <strong>{pct}% ({count})</strong>
                               </div>
                               <div className={styles.progressBarTrack}>
@@ -516,7 +634,7 @@ function DashboardContent() {
                           </div>
                           <div className={styles.logDevice}>{log.browser} / {log.os}</div>
                           <div className={styles.logReferer} title={log.referer}>{log.referer}</div>
-                          <div className={styles.logCountry}>{log.country}</div>
+                          <div className={styles.logCountry}>{getCountryName(log.country)}</div>
                         </div>
                       )) : (
                         <div className={styles.emptyDataText} style={{ padding: '20px', textAlign: 'center' }}>

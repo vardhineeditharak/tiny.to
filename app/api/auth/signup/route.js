@@ -2,14 +2,22 @@ import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { redis } from '../../../../lib/redis';
 import { logger } from '../../../../lib/logger';
+import { hashPassword } from '../../../../lib/auth';
 
-async function hashPassword(password) {
-  const encoder = new TextEncoder();
-  const data = encoder.encode(password);
-  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-  return hashHex;
+const DISPOSABLE_DOMAINS = [
+  'mailinator.com', 'yopmail.com', 'tempmail.com', 'guerrillamail.com', 
+  'sharklasers.com', 'dispostable.com', 'getairmail.com', 'maildrop.cc',
+  '10minutemail.com', 'trashmail.com'
+];
+
+function isValidEmail(email) {
+  const regex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+  if (!regex.test(email)) return false;
+
+  const domain = email.split('@')[1];
+  if (DISPOSABLE_DOMAINS.includes(domain.toLowerCase())) return false;
+
+  return true;
 }
 
 export async function POST(request) {
@@ -20,8 +28,8 @@ export async function POST(request) {
   try {
     const { email, password, name, phone, emailAnalyticsEnabled, provider } = await request.json();
 
-    if (!email) {
-      return NextResponse.json({ error: 'Email is required.' }, { status: 400 });
+    if (!email || !isValidEmail(email)) {
+      return NextResponse.json({ error: 'Please provide a valid, non-disposable email address.' }, { status: 400 });
     }
 
     const normalizedEmail = email.trim().toLowerCase();

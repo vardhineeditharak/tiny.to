@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Link2, Copy, Check, ExternalLink, AlertTriangle, ArrowRight,
-  BarChart3, LogOut, Clock
+  BarChart3, LogOut, Clock, Home as HomeIcon, Zap, Shield, Activity, Mail, PenTool, HelpCircle
 } from 'lucide-react';
 import styles from './page.module.css';
 import TextType from './components/TextType';
@@ -12,6 +12,8 @@ import LightRays from './components/LightRays';
 
 export default function Home() {
   const router = useRouter();
+  const featuresRef = useRef(null);
+  const topRef = useRef(null);
 
   // Core shorten states
   const [url, setUrl] = useState('');
@@ -129,7 +131,7 @@ export default function Home() {
   };
 
   return (
-    <div className={styles.container} style={{ position: 'relative' }}>
+    <div ref={topRef} className={styles.container} style={{ position: 'relative' }}>
       <LightRays
         raysOrigin="top-center"
         raysColor="#22c55e"
@@ -159,7 +161,7 @@ export default function Home() {
           tiny<span className={styles.navBrandDot}>.</span>to
         </a>
         <div className={styles.navLinks}>
-          <a className={styles.navLink} onClick={() => alert('Features: Edge redirection, detailed weekly reports, customized aliases.')}>Features</a>
+          <a className={styles.navLink} onClick={() => featuresRef.current?.scrollIntoView({ behavior: 'smooth' })}>Features</a>
           {user ? (
             <>
               <button onClick={() => router.push('/dashboard')} className={styles.signInBtn}>
@@ -207,8 +209,7 @@ export default function Home() {
               autoComplete="off"
               aria-label="URL to shorten"
             />
-            <button type="submit" className={styles.button} disabled={loading || !url}>
-              {loading ? 'Shortening...' : 'Shorten'}
+            <button type="submit" className={styles.button} disabled={loading || !url} aria-label="Shorten URL">
               <ArrowRight size={16} />
             </button>
           </div>
@@ -327,12 +328,62 @@ export default function Home() {
             </div>
           )}
         </div>
+
+        {/* Features Section */}
+        <section ref={featuresRef} className={styles.featuresSection}>
+          <div className={styles.featuresHeader}>
+            <span className={styles.featuresSubtitle}>Platform Features</span>
+            <h2 className={styles.featuresTitle}>Built for speed, built for privacy.</h2>
+          </div>
+          <div className={styles.featuresGrid}>
+            <div className={styles.featureCard}>
+              <div className={styles.featureIconWrapper}>
+                <Zap size={20} />
+              </div>
+              <div className={styles.featureInfo}>
+                <h3 className={styles.featureName}>Edge-Fast Redirections</h3>
+                <p className={styles.featureDesc}>Powered by Next.js middleware and Upstash Redis for global sub-millisecond redirect performance.</p>
+              </div>
+            </div>
+
+            <div className={styles.featureCard}>
+              <div className={styles.featureIconWrapper}>
+                <Activity size={20} />
+              </div>
+              <div className={styles.featureInfo}>
+                <h3 className={styles.featureName}>Detailed Click Telemetry</h3>
+                <p className={styles.featureDesc}>Get instant insights on where your traffic comes from, including country, browser, OS, and referrers.</p>
+              </div>
+            </div>
+
+            <div className={styles.featureCard}>
+              <div className={styles.featureIconWrapper}>
+                <PenTool size={20} />
+              </div>
+              <div className={styles.featureInfo}>
+                <h3 className={styles.featureName}>Custom Slugs & Aliases</h3>
+                <p className={styles.featureDesc}>Create readable, search-friendly link aliases. Secure custom branding for every redirect.</p>
+              </div>
+            </div>
+
+            <div className={styles.featureCard}>
+              <div className={styles.featureIconWrapper}>
+                <Shield size={20} />
+              </div>
+              <div className={styles.featureInfo}>
+                <h3 className={styles.featureName}>Privacy-First Design</h3>
+                <p className={styles.featureDesc}>Strict adherence to data privacy with hashed IP addresses. GDPR-compliant visitor analytics.</p>
+              </div>
+            </div>
+          </div>
+        </section>
       </main>
 
       {/* Footer */}
       <footer className={styles.footer}>
         <span>Free. Open Source. With Link Analytics.</span>
       </footer>
+
     </div>
   );
 }

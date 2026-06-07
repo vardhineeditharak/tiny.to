@@ -1,14 +1,6 @@
 import { NextResponse } from 'next/server';
-import { Redis } from '@upstash/redis';
+import { redis } from './lib/redis';
 import { logger } from './lib/logger';
-
-// Initialize Redis if env vars are present
-const redisUrl = process.env.UPSTASH_REDIS_REST_URL;
-const redisToken = process.env.UPSTASH_REDIS_REST_TOKEN;
-
-const redis = (redisUrl && redisToken)
-  ? new Redis({ url: redisUrl, token: redisToken })
-  : null;
 
 function parseUserAgent(uaString) {
   let browser = 'Unknown';
