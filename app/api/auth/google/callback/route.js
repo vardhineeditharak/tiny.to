@@ -69,7 +69,7 @@ export async function GET(request) {
         passwordHash: '',
         name: name || '',
         phone: '',
-        emailAnalyticsEnabled: true,
+        emailAnalyticsEnabled: false,
         isPremium: false,
         provider: 'google',
         picture: picture || ''

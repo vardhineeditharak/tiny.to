@@ -14,7 +14,7 @@ export default function Signup() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [emailAnalytics, setEmailAnalytics] = useState(true);
+  const [emailAnalytics, setEmailAnalytics] = useState(false);
 
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -72,13 +72,13 @@ export default function Signup() {
         raysOrigin="top-center"
         raysColor="#22c55e"
         raysSpeed={0.6}
-        lightSpread={0.5}
-        rayLength={1.2}
+        lightSpread={1.2}
+        rayLength={2.5}
         followMouse={true}
         mouseInfluence={0.06}
         noiseAmount={0.04}
         distortion={0.02}
-        fadeDistance={1.0}
+        fadeDistance={2.2}
         saturation={0.5}
       />
       <div className={styles.modal} style={{ border: 'none', boxShadow: 'none' }}>
@@ -161,15 +161,7 @@ export default function Signup() {
             </div>
           </div>
 
-          <label className={styles.checkboxLabel}>
-            <input
-              type="checkbox"
-              checked={emailAnalytics}
-              onChange={(e) => setEmailAnalytics(e.target.checked)}
-              className={styles.checkboxInput}
-            />
-            <span>Send me weekly analytics reports via email</span>
-          </label>
+
 
           {error && <div className={styles.errorMessage}>{error}</div>}
 

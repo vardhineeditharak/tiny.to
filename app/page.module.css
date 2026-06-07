@@ -797,13 +797,47 @@
 /* Mobile Breakpoints */
 @media (max-width: 600px) {
   .logo {
-    font-size: 56px;
+    font-size: clamp(32px, 11vw, 44px);
+    min-height: 54px;
+    line-height: 1.2;
   }
   .tagline {
     font-size: 15px;
   }
+  .nav {
+    padding: 0 12px;
+    height: 56px;
+    top: 8px;
+    margin-top: 8px;
+  }
+  .navBrand {
+    font-size: 18px;
+  }
+  .navLogo {
+    width: 22px;
+    height: 22px;
+    margin-right: 6px;
+  }
   .navLinks {
-    display: none;
+    display: flex;
+    gap: 12px;
+    align-items: center;
+  }
+  .navLink {
+    font-size: 13px;
+  }
+  @media (max-width: 450px) {
+    .navLink {
+      display: none;
+    }
+  }
+  .signInBtn {
+    padding: 6px 12px;
+    font-size: 13px;
+  }
+  .signOutBtn {
+    padding: 6px 10px;
+    font-size: 13px;
   }
   .historyItem {
     flex-direction: column;
@@ -820,6 +854,9 @@
     height: auto;
     padding: 24px 0 120px; /* added extra padding bottom for the dock space */
     text-align: center;
+  }
+  .modal {
+    padding: 24px 20px;
   }
 }
 

@@ -136,13 +136,13 @@ export default function Home() {
         raysOrigin="top-center"
         raysColor="#22c55e"
         raysSpeed={0.8}
-        lightSpread={0.6}
-        rayLength={1.4}
+        lightSpread={1.2}
+        rayLength={2.5}
         followMouse={true}
         mouseInfluence={0.08}
         noiseAmount={0.05}
         distortion={0.02}
-        fadeDistance={1.2}
+        fadeDistance={2.2}
         saturation={0.7}
       />
       {envWarning && (

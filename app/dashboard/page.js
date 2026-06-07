@@ -288,13 +288,13 @@ function DashboardContent() {
         raysOrigin="top-center"
         raysColor="#22c55e"
         raysSpeed={0.5}
-        lightSpread={0.4}
-        rayLength={1.0}
+        lightSpread={1.0}
+        rayLength={2.0}
         followMouse={true}
         mouseInfluence={0.05}
         noiseAmount={0.03}
         distortion={0.01}
-        fadeDistance={0.8}
+        fadeDistance={1.8}
         saturation={0.4}
       />
       <header className={styles.nav}>
@@ -304,21 +304,21 @@ function DashboardContent() {
         </a>
         <div className={styles.navActions}>
           <button onClick={() => router.push('/')} className={styles.iconBtn}>
-            <Home size={15} /> Home
+            <Home size={15} /> <span className={styles.btnText}>Home</span>
           </button>
           <button onClick={() => setShowSettings(!showSettings)} className={`${styles.iconBtn} ${showSettings ? styles.activeBtn : ''}`}>
             {showSettings ? (
               <>
-                <BarChart3 size={15} /> Analytics
+                <BarChart3 size={15} /> <span className={styles.btnText}>Analytics</span>
               </>
             ) : (
               <>
-                <Settings size={15} /> Account
+                <Settings size={15} /> <span className={styles.btnText}>Account</span>
               </>
             )}
           </button>
           <button onClick={handleSignOut} className={styles.signOutBtn}>
-            <LogOut size={15} /> Sign Out
+            <LogOut size={15} /> <span className={styles.btnText}>Sign Out</span>
           </button>
         </div>
       </header>

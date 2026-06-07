@@ -10,21 +10,23 @@ export default function NotFound() {
         raysOrigin="top-center"
         raysColor="#22c55e"
         raysSpeed={0.6}
-        lightSpread={0.5}
-        rayLength={1.2}
+        lightSpread={1.2}
+        rayLength={2.5}
         followMouse={true}
         mouseInfluence={0.06}
         noiseAmount={0.04}
         distortion={0.02}
-        fadeDistance={1.0}
+        fadeDistance={2.2}
         saturation={0.5}
       />
-      <h1 style={titleStyle}>404<span style={dotStyle}>.</span></h1>
-      <p style={subtitleStyle}>Link not found</p>
-      <p style={textStyle}>The URL code is invalid or has expired.</p>
-      <Link href="/" style={linkStyle}>
-        Back to Home
-      </Link>
+      <div style={{ position: 'relative', zIndex: 2 }}>
+        <h1 style={titleStyle}>404<span style={dotStyle}>.</span></h1>
+        <p style={subtitleStyle}>Link not found</p>
+        <p style={textStyle}>The URL code is invalid or has expired.</p>
+        <Link href="/" style={linkStyle}>
+          Back to Home
+        </Link>
+      </div>
     </div>
   );
 }

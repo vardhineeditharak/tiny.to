@@ -19,7 +19,7 @@ export async function POST(request) {
 
       const normalizedEmail = email.trim().toLowerCase();
       const userJson = await redis.get(`user:${normalizedEmail}`);
-      
+
       if (!userJson) {
         // Return success for security to avoid email enumeration
         return NextResponse.json({ success: true, message: 'If this email is registered, recovery instructions have been sent.' });

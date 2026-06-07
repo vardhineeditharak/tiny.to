@@ -124,10 +124,12 @@ export default function LightRays({
       gl.canvas.style.width = '100%';
       gl.canvas.style.height = '100%';
 
-      while (containerRef.current.firstChild) {
-        containerRef.current.removeChild(containerRef.current.firstChild);
+      if (containerRef.current) {
+        while (containerRef.current.firstChild) {
+          containerRef.current.removeChild(containerRef.current.firstChild);
+        }
+        containerRef.current.appendChild(gl.canvas);
       }
-      containerRef.current.appendChild(gl.canvas);
 
       /* ─── Shaders ─── */
       const vert = `
@@ -328,8 +330,8 @@ void main() {
             if (loseContextExt) {
               loseContextExt.loseContext();
             }
-            if (canvas && canvas.parentNode) {
-              canvas.parentNode.removeChild(canvas);
+            if (canvas && canvas.parentNode && containerRef.current && containerRef.current.contains(canvas)) {
+              containerRef.current.removeChild(canvas);
             }
           } catch (error) {
             console.warn('Error during WebGL cleanup:', error);

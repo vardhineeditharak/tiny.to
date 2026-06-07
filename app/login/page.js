@@ -142,13 +142,13 @@ export default function Login() {
         raysOrigin="top-center"
         raysColor="#22c55e"
         raysSpeed={0.6}
-        lightSpread={0.5}
-        rayLength={1.2}
+        lightSpread={1.2}
+        rayLength={2.5}
         followMouse={true}
         mouseInfluence={0.06}
         noiseAmount={0.04}
         distortion={0.02}
-        fadeDistance={1.0}
+        fadeDistance={2.2}
         saturation={0.5}
       />
       <div className={styles.modal} style={{ border: 'none', boxShadow: 'none' }}>
