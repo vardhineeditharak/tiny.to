@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import { useClerk } from '@clerk/nextjs';
 import {
   Link2, Copy, Check, ExternalLink, AlertTriangle, ArrowRight,
   BarChart3, LogOut, Clock, Home as HomeIcon, Zap, Shield, Activity, Mail, PenTool, HelpCircle
@@ -12,6 +13,7 @@ import LightRays from './components/LightRays';
 
 export default function Home() {
   const router = useRouter();
+  const { signOut } = useClerk();
   const featuresRef = useRef(null);
   const topRef = useRef(null);
 
@@ -122,7 +124,7 @@ export default function Home() {
 
   const handleSignOut = async () => {
     try {
-      await fetch('/api/auth/logout', { method: 'POST' });
+      await signOut();
       setUser(null);
       setLinks([]);
     } catch (err) {
@@ -131,7 +133,7 @@ export default function Home() {
   };
 
   return (
-    <div ref={topRef} className={styles.container} style={{ position: 'relative' }}>
+    <div ref={topRef} style={{ position: 'relative', width: '100%', minHeight: '100vh', overflowX: 'hidden' }}>
       <LightRays
         raysOrigin="top-center"
         raysColor="#22c55e"
@@ -145,6 +147,7 @@ export default function Home() {
         fadeDistance={2.2}
         saturation={0.7}
       />
+      <div className={styles.container}>
       {envWarning && (
         <div className={styles.warningBanner}>
           <AlertTriangle size={16} />
@@ -384,6 +387,7 @@ export default function Home() {
         <span>Free. Open Source. With Link Analytics.</span>
       </footer>
 
+      </div>
     </div>
   );
 }
