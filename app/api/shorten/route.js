@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
+import { auth } from '@clerk/nextjs/server';
 import { redis } from '../../../lib/redis';
 import { logger } from '../../../lib/logger';
 
@@ -62,17 +62,7 @@ export async function POST(request) {
     }
 
     // Check if user is logged in
-    const cookieStore = cookies();
-    const sessionId = cookieStore.get('session')?.value;
-    let userId = null;
-
-    if (sessionId) {
-      const sessionData = await redis.get(`session:${sessionId}`);
-      if (sessionData) {
-        const session = typeof sessionData === 'string' ? JSON.parse(sessionData) : sessionData;
-        userId = session.userId;
-      }
-    }
+    const { userId } = auth();
 
     let shortCode = '';
 
@@ -152,19 +142,10 @@ export async function DELETE(request) {
       return NextResponse.json({ error: 'Short code is required.' }, { status: 400 });
     }
 
-    const cookieStore = cookies();
-    const sessionId = cookieStore.get('session')?.value;
-    if (!sessionId) {
+    const { userId } = auth();
+    if (!userId) {
       return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
     }
-
-    const sessionData = await redis.get(`session:${sessionId}`);
-    if (!sessionData) {
-      return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
-    }
-
-    const session = typeof sessionData === 'string' ? JSON.parse(sessionData) : sessionData;
-    const { userId } = session;
 
     const isOwner = await redis.sismember(`user_links:${userId}`, code);
     const owner = await redis.get(`url_owner:${code}`);

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
+import { auth, currentUser } from '@clerk/nextjs/server';
 import { redis } from '../../../../lib/redis';
 import { logger } from '../../../../lib/logger';
 
@@ -9,30 +9,55 @@ export async function GET() {
   }
 
   try {
-    const cookieStore = cookies();
-    const sessionId = cookieStore.get('session')?.value;
-
-    if (!sessionId) {
+    const { userId } = auth();
+    if (!userId) {
       return NextResponse.json({ authenticated: false });
     }
 
-    const sessionData = await redis.get(`session:${sessionId}`);
-    if (!sessionData) {
+    const clerkUser = await currentUser();
+    if (!clerkUser) {
       return NextResponse.json({ authenticated: false });
     }
 
-    const session = typeof sessionData === 'string' ? JSON.parse(sessionData) : sessionData;
-    const { email } = session;
+    const email = clerkUser.emailAddresses[0]?.emailAddress?.toLowerCase();
 
-    const userJson = await redis.get(`user:${email}`);
-    if (!userJson) {
-      return NextResponse.json({ authenticated: false });
+    // Check settings for Clerk user
+    let settingsJson = await redis.get(`user:settings:${userId}`);
+    let settings = settingsJson ? (typeof settingsJson === 'string' ? JSON.parse(settingsJson) : settingsJson) : null;
+
+    // Migrate existing local/Google oauth user links if same email exists
+    if (!settings && email) {
+      const oldUserJson = await redis.get(`user:${email}`);
+      if (oldUserJson) {
+        const oldUser = typeof oldUserJson === 'string' ? JSON.parse(oldUserJson) : oldUserJson;
+        
+        // Migrate links to Clerk userId
+        const oldLinkCodes = await redis.smembers(`user_links:${oldUser.userId}`);
+        if (oldLinkCodes && oldLinkCodes.length > 0) {
+          for (const code of oldLinkCodes) {
+            await redis.sadd(`user_links:${userId}`, code);
+            await redis.set(`url_owner:${code}`, userId);
+          }
+        }
+
+        settings = {
+          emailAnalyticsEnabled: !!oldUser.emailAnalyticsEnabled,
+          isPremium: !!oldUser.isPremium,
+        };
+        await redis.set(`user:settings:${userId}`, JSON.stringify(settings));
+      }
     }
 
-    const user = typeof userJson === 'string' ? JSON.parse(userJson) : userJson;
+    if (!settings) {
+      settings = {
+        emailAnalyticsEnabled: false,
+        isPremium: false,
+      };
+      await redis.set(`user:settings:${userId}`, JSON.stringify(settings));
+    }
 
     // Get user's links
-    const linkCodes = await redis.smembers(`user_links:${user.userId}`);
+    const linkCodes = await redis.smembers(`user_links:${userId}`);
     const links = [];
 
     if (linkCodes && linkCodes.length > 0) {
@@ -49,19 +74,19 @@ export async function GET() {
       }
     }
 
-    // Sort links by click count or code
+    // Sort links by click count
     links.sort((a, b) => b.clicks - a.clicks);
 
     return NextResponse.json({
       authenticated: true,
       user: {
-        userId: user.userId,
-        email: user.email,
-        name: user.name || '',
-        phone: user.phone || '',
-        emailAnalyticsEnabled: !!user.emailAnalyticsEnabled,
-        isPremium: !!user.isPremium,
-        provider: user.provider || 'local'
+        userId,
+        email,
+        name: `${clerkUser.firstName || ''} ${clerkUser.lastName || ''}`.trim() || email,
+        phone: clerkUser.phoneNumbers[0]?.phoneNumber || '',
+        emailAnalyticsEnabled: !!settings.emailAnalyticsEnabled,
+        isPremium: !!settings.isPremium,
+        provider: 'clerk'
       },
       links,
     });

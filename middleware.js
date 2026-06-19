@@ -1,3 +1,4 @@
+import { clerkMiddleware } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
 import { redis } from './lib/redis';
 import { logger } from './lib/logger';
@@ -46,12 +47,12 @@ function parseUserAgent(uaString) {
   return { browser, os, device };
 }
 
-export async function middleware(request) {
+export default clerkMiddleware(async (auth, request) => {
   const { pathname } = request.nextUrl;
 
   // Safeguard: pass through if Redis is not configured
   if (!redis) {
-    return NextResponse.next();
+    return;
   }
 
   // Skip static assets, api routes, favicon, home page
@@ -61,7 +62,7 @@ export async function middleware(request) {
     pathname.startsWith('/api') ||
     pathname.includes('.')
   ) {
-    return NextResponse.next();
+    return;
   }
 
   // Extract short code (e.g., /xY7z2 -> xY7z2 or /my-alias -> my-alias)
@@ -118,13 +119,13 @@ export async function middleware(request) {
       logger.error('Middleware redirect error:', error);
     }
   }
-
-  // Fallback: If code is not found, continue to next.js routing
-  return NextResponse.next();
-}
+});
 
 export const config = {
   matcher: [
-    '/((?!api|_next/static|_next/image|favicon.ico).*)',
+    // Skip Next.js internals and all static files, unless found in search params
+    '/((?!_next|[^?]*\\.[\\w]+$|_next/image|favicon.ico).*)',
+    // Always run for API routes
+    '/(api|trpc)(.*)',
   ],
 };

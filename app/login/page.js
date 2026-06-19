@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useSignIn } from '@clerk/nextjs';
 import { Lock, Mail, Eye, EyeOff, ArrowRight } from 'lucide-react';
 import styles from '../page.module.css';
 import LightRays from '../components/LightRays';
@@ -9,89 +10,75 @@ import GoogleIcon from '../components/GoogleIcon';
 
 export default function Login() {
   const router = useRouter();
+  const { isLoaded, signIn, setActive } = useSignIn();
 
   // Auth states
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  const [code, setCode] = useState('');
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
-  // Recovery views: 'login' | 'forgot' | 'reset'
+  // views: 'login' | 'forgot' | 'reset'
   const [view, setView] = useState('login');
-  const [recoveryToken, setRecoveryToken] = useState('');
-
-  // Check session & URL recovery tokens
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const tok = params.get('token');
-    if (tok) {
-      setRecoveryToken(tok);
-      setView('reset');
-    }
-
-    const checkSession = async () => {
-      try {
-        const res = await fetch('/api/auth/me');
-        const data = await res.json();
-        if (res.ok && data.authenticated) {
-          router.push('/dashboard');
-        }
-      } catch (err) {
-        console.error('Failed to load session:', err);
-      }
-    };
-    checkSession();
-  }, []);
 
   const handleLogin = async (e) => {
     e.preventDefault();
+    if (!isLoaded) return;
     setLoading(true);
     setError('');
 
     try {
-      const res = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
+      const result = await signIn.create({
+        identifier: email,
+        password,
       });
 
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || 'Login failed');
+      if (result.status === 'complete') {
+        await setActive({ session: result.createdSessionId });
+        router.push('/dashboard');
+      } else {
+        console.log(result);
+        setError('Login is incomplete. Please check your credentials.');
       }
-
-      router.push('/dashboard');
     } catch (err) {
-      setError(err.message);
+      setError(err.errors ? err.errors[0].message : err.message);
     } finally {
       setLoading(false);
     }
   };
 
+  const handleGoogleLogin = async () => {
+    if (!isLoaded) return;
+    try {
+      await signIn.authenticateWithRedirect({
+        strategy: 'oauth_google',
+        redirectUrl: '/sso-callback',
+        redirectUrlComplete: '/dashboard',
+      });
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
   const handleRequestRecovery = async (e) => {
     e.preventDefault();
+    if (!isLoaded) return;
     setLoading(true);
     setError('');
     setSuccessMessage('');
 
     try {
-      const res = await fetch('/api/auth/recover', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'request', email }),
+      await signIn.create({
+        strategy: 'reset_password_email_code',
+        identifier: email,
       });
-
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || 'Failed to request recovery.');
-      }
-
+      setView('reset');
       setSuccessMessage('If this email is registered, recovery instructions have been sent.');
     } catch (err) {
-      setError(err.message);
+      setError(err.errors ? err.errors[0].message : err.message);
     } finally {
       setLoading(false);
     }
@@ -99,38 +86,29 @@ export default function Login() {
 
   const handleResetPassword = async (e) => {
     e.preventDefault();
+    if (!isLoaded) return;
     setLoading(true);
     setError('');
     setSuccessMessage('');
 
-    if (password !== confirmPassword) {
-      setError('Passwords do not match.');
-      setLoading(false);
-      return;
-    }
-
     try {
-      const res = await fetch('/api/auth/recover', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'reset', token: recoveryToken, password }),
+      const result = await signIn.attemptFirstFactor({
+        strategy: 'reset_password_email_code',
+        code,
+        password,
       });
 
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || 'Failed to reset password.');
+      if (result.status === 'complete') {
+        await setActive({ session: result.createdSessionId });
+        setSuccessMessage('Password has been reset successfully! Redirecting...');
+        setTimeout(() => {
+          router.push('/dashboard');
+        }, 1500);
+      } else {
+        setError('Verification is incomplete.');
       }
-
-      setSuccessMessage('Password has been reset successfully! Redirecting to login...');
-      setTimeout(() => {
-        router.replace('/login');
-        setView('login');
-        setPassword('');
-        setConfirmPassword('');
-        setSuccessMessage('');
-      }, 2500);
     } catch (err) {
-      setError(err.message);
+      setError(err.errors ? err.errors[0].message : err.message);
     } finally {
       setLoading(false);
     }
@@ -168,7 +146,7 @@ export default function Login() {
 
             <button
               type="button"
-              onClick={() => window.location.href = '/api/auth/google'}
+              onClick={handleGoogleLogin}
               className={styles.googleBtn}
             >
               <span className={styles.socialIconBox}>
@@ -271,8 +249,6 @@ export default function Login() {
               {error && <div className={styles.errorMessage}>{error}</div>}
               {successMessage && <div className={styles.successMessage} style={{ color: 'var(--primary)', fontSize: '13px' }}>{successMessage}</div>}
 
-
-
               <button type="submit" className={styles.submitBtn} disabled={loading}>
                 {loading ? 'Sending...' : 'Send Recovery Email'}
                 <ArrowRight size={16} />
@@ -292,10 +268,25 @@ export default function Login() {
           <>
             <div className={styles.modalHeader}>
               <h1 className={styles.modalTitle}>Reset.</h1>
-              <p className={styles.modalSubtitle}>Choose a new secure password for your account.</p>
+              <p className={styles.modalSubtitle}>Choose a new secure password and enter the code sent to your email.</p>
             </div>
 
             <form onSubmit={handleResetPassword} className={styles.authForm}>
+              <div className={styles.fieldGroup}>
+                <label className={styles.fieldLabel}>Verification Code</label>
+                <div className={styles.inputFieldWrapper}>
+                  <input
+                    type="text"
+                    value={code}
+                    onChange={(e) => setCode(e.target.value)}
+                    required
+                    className={styles.formInput}
+                    style={{ paddingLeft: '14px' }}
+                    placeholder="123456"
+                  />
+                </div>
+              </div>
+
               <div className={styles.fieldGroup}>
                 <label className={styles.fieldLabel}>New Password</label>
                 <div className={styles.inputFieldWrapper}>
@@ -304,21 +295,6 @@ export default function Login() {
                     type="password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    required
-                    className={styles.formInput}
-                    placeholder="••••••••"
-                  />
-                </div>
-              </div>
-
-              <div className={styles.fieldGroup}>
-                <label className={styles.fieldLabel}>Confirm New Password</label>
-                <div className={styles.inputFieldWrapper}>
-                  <Lock className={styles.fieldIcon} size={16} />
-                  <input
-                    type="password"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
                     required
                     className={styles.formInput}
                     placeholder="••••••••"
@@ -337,7 +313,7 @@ export default function Login() {
 
             <div className={styles.toggleAuthMode}>
               Need to go back?{' '}
-              <span className={styles.toggleAuthLink} onClick={() => { setView('login'); router.replace('/login'); setError(''); setSuccessMessage(''); }}>
+              <span className={styles.toggleAuthLink} onClick={() => { setView('login'); setError(''); setSuccessMessage(''); }}>
                 Cancel
               </span>
             </div>

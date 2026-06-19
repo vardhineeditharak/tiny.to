@@ -2,6 +2,7 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
+import { useClerk } from '@clerk/nextjs';
 import { 
   Copy, Check, ExternalLink, ArrowRight, Home, Settings,
   User, BarChart3, LogOut, RefreshCw, ChevronRight, Trash2
@@ -21,6 +22,7 @@ const getCountryName = (code) => {
 
 function DashboardContent() {
   const router = useRouter();
+  const { signOut } = useClerk();
   const searchParams = useSearchParams();
   const initialCode = searchParams.get('code') || '';
 
@@ -100,8 +102,7 @@ function DashboardContent() {
 
   const handleSignOut = async () => {
     try {
-      await fetch('/api/auth/logout', { method: 'POST' });
-      router.push('/');
+      await signOut(() => router.push('/'));
     } catch (err) {
       console.error('Failed to sign out:', err);
     }
@@ -368,62 +369,6 @@ function DashboardContent() {
                 </span>
               </label>
             </div>
-          </div>
-
-          <div className={styles.accountCard}>
-            <h2 className={styles.accountSectionTitle}>Security & Password</h2>
-            {user.provider === 'google' && !user.passwordHash && (
-              <p className={styles.detailLabel} style={{ marginBottom: '16px', textTransform: 'none', lineHeight: '1.4' }}>
-                💡 You registered via Google. Set a password below to enable standard email/password login in addition to Google OAuth.
-              </p>
-            )}
-            
-            <form onSubmit={handlePasswordChange} className={styles.passwordForm}>
-              {user.passwordHash ? (
-                <div className={styles.passwordInputWrapper}>
-                  <label className={styles.detailLabel}>Current Password</label>
-                  <input
-                    type="password"
-                    required
-                    value={oldPassword}
-                    onChange={(e) => setOldPassword(e.target.value)}
-                    className={styles.passwordInput}
-                    placeholder="••••••••"
-                  />
-                </div>
-              ) : null}
-
-              <div className={styles.passwordInputWrapper}>
-                <label className={styles.detailLabel}>New Password</label>
-                <input
-                  type="password"
-                  required
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  className={styles.passwordInput}
-                  placeholder="••••••••"
-                />
-              </div>
-
-              <div className={styles.passwordInputWrapper}>
-                <label className={styles.detailLabel}>Confirm New Password</label>
-                <input
-                  type="password"
-                  required
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  className={styles.passwordInput}
-                  placeholder="••••••••"
-                />
-              </div>
-
-              {passwordError && <div className={styles.errorMessage} style={{ margin: 0 }}>{passwordError}</div>}
-              {passwordSuccess && <div className={styles.successMessage}>{passwordSuccess}</div>}
-
-              <button type="submit" className={styles.passwordSubmitBtn}>
-                {user.passwordHash ? 'Change Password' : 'Set Password'}
-              </button>
-            </form>
           </div>
         </div>
       ) : (

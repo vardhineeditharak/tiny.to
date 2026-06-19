@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useSignUp } from '@clerk/nextjs';
 import { Lock, Mail, Eye, EyeOff, ArrowRight } from 'lucide-react';
 import styles from '../page.module.css';
 import LightRays from '../components/LightRays';
@@ -9,60 +10,95 @@ import GoogleIcon from '../components/GoogleIcon';
 
 export default function Signup() {
   const router = useRouter();
+  const { isLoaded, signUp, setActive } = useSignUp();
 
   // Signup states
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [code, setCode] = useState('');
   const [emailAnalytics, setEmailAnalytics] = useState(false);
 
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
-  // Check if already logged in
-  useEffect(() => {
-    const checkSession = async () => {
-      try {
-        const res = await fetch('/api/auth/me');
-        const data = await res.json();
-        if (res.ok && data.authenticated) {
-          router.push('/dashboard');
-        }
-      } catch (err) {
-        console.error('Failed to load session:', err);
-      }
-    };
-    checkSession();
-  }, []);
+  // views: 'signup' | 'verify'
+  const [view, setView] = useState('signup');
 
   const handleSignup = async (e) => {
     e.preventDefault();
+    if (!isLoaded) return;
     setLoading(true);
     setError('');
 
     try {
-      const res = await fetch('/api/auth/signup', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email,
-          password,
-          name: name || undefined,
-          emailAnalyticsEnabled: emailAnalytics
-        }),
+      const parts = name.trim().split(' ');
+      const firstName = parts[0] || '';
+      const lastName = parts.slice(1).join(' ') || '';
+
+      await signUp.create({
+        emailAddress: email,
+        password,
+        firstName,
+        lastName,
       });
 
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || 'Signup failed');
-      }
-
-      router.push('/dashboard');
+      await signUp.prepareEmailAddressVerification({ strategy: 'email_code' });
+      setView('verify');
     } catch (err) {
-      setError(err.message);
+      setError(err.errors ? err.errors[0].message : err.message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleVerify = async (e) => {
+    e.preventDefault();
+    if (!isLoaded) return;
+    setLoading(true);
+    setError('');
+
+    try {
+      const result = await signUp.attemptEmailAddressVerification({
+        code,
+      });
+
+      if (result.status === 'complete') {
+        await setActive({ session: result.createdSessionId });
+        
+        // Save custom settings to Redis
+        try {
+          await fetch('/api/auth/settings', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ emailAnalyticsEnabled: emailAnalytics }),
+          });
+        } catch (_) {
+          // ignore error if settings save fails (non-critical)
+        }
+
+        router.push('/dashboard');
+      } else {
+        setError('Verification is incomplete.');
+      }
+    } catch (err) {
+      setError(err.errors ? err.errors[0].message : err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleSignup = async () => {
+    if (!isLoaded) return;
+    try {
+      await signUp.authenticateWithRedirect({
+        strategy: 'oauth_google',
+        redirectUrl: '/sso-callback',
+        redirectUrlComplete: '/dashboard',
+      });
+    } catch (err) {
+      setError(err.message);
     }
   };
 
@@ -89,94 +125,151 @@ export default function Signup() {
         >
           ✕
         </button>
-        <div className={styles.modalHeader}>
-          <h1 className={styles.modalTitle}>Join platform.</h1>
-          <p className={styles.modalSubtitle}>Clinical efficiency for your digital presence.</p>
-        </div>
 
-        <button
-          type="button"
-          onClick={() => window.location.href = '/api/auth/google'}
-          className={styles.googleBtn}
-        >
-          <span className={styles.socialIconBox}>
-            <GoogleIcon />
-          </span>
-          Continue with Google
-        </button>
-
-        <div className={styles.divider}>OR EMAIL</div>
-
-        <form onSubmit={handleSignup} className={styles.authForm}>
-          <div className={styles.fieldGroup}>
-            <label className={styles.fieldLabel}>Display Name*</label>
-            <div className={styles.inputFieldWrapper}>
-              <input
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                required
-                className={styles.formInput}
-                style={{ paddingLeft: '14px' }}
-                placeholder="Your Name"
-              />
+        {view === 'signup' && (
+          <>
+            <div className={styles.modalHeader}>
+              <h1 className={styles.modalTitle}>Join platform.</h1>
+              <p className={styles.modalSubtitle}>Clinical efficiency for your digital presence.</p>
             </div>
-          </div>
 
-          <div className={styles.fieldGroup}>
-            <label className={styles.fieldLabel}>Email Address</label>
-            <div className={styles.inputFieldWrapper}>
-              <Mail className={styles.fieldIcon} size={16} />
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                className={styles.formInput}
-                placeholder="dev@tiny.to"
-              />
-            </div>
-          </div>
+            <button
+              type="button"
+              onClick={handleGoogleSignup}
+              className={styles.googleBtn}
+            >
+              <span className={styles.socialIconBox}>
+                <GoogleIcon />
+              </span>
+              Continue with Google
+            </button>
 
-          <div className={styles.fieldGroup}>
-            <label className={styles.fieldLabel}>Password</label>
-            <div className={styles.inputFieldWrapper}>
-              <Lock className={styles.fieldIcon} size={16} />
-              <input
-                type={showPassword ? "text" : "password"}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                className={styles.formInput}
-                placeholder="••••••••"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className={styles.eyeIconBtn}
-                aria-label="Toggle password visibility"
-              >
-                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+            <div className={styles.divider}>OR EMAIL</div>
+
+            <form onSubmit={handleSignup} className={styles.authForm}>
+              <div className={styles.fieldGroup}>
+                <label className={styles.fieldLabel}>Display Name*</label>
+                <div className={styles.inputFieldWrapper}>
+                  <input
+                    type="text"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    required
+                    className={styles.formInput}
+                    style={{ paddingLeft: '14px' }}
+                    placeholder="Your Name"
+                  />
+                </div>
+              </div>
+
+              <div className={styles.fieldGroup}>
+                <label className={styles.fieldLabel}>Email Address</label>
+                <div className={styles.inputFieldWrapper}>
+                  <Mail className={styles.fieldIcon} size={16} />
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    className={styles.formInput}
+                    placeholder="dev@tiny.to"
+                  />
+                </div>
+              </div>
+
+              <div className={styles.fieldGroup}>
+                <label className={styles.fieldLabel}>Password</label>
+                <div className={styles.inputFieldWrapper}>
+                  <Lock className={styles.fieldIcon} size={16} />
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    className={styles.formInput}
+                    placeholder="••••••••"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className={styles.eyeIconBtn}
+                    aria-label="Toggle password visibility"
+                  >
+                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
+              </div>
+
+              <div style={{ margin: '14px 0' }}>
+                <label className={styles.checkboxLabel} style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={emailAnalytics}
+                    onChange={(e) => setEmailAnalytics(e.target.checked)}
+                    style={{ accentColor: '#22c55e' }}
+                  />
+                  <span style={{ fontSize: '13px', color: '#8e8e8f' }}>
+                    Email weekly redirect analytics reports
+                  </span>
+                </label>
+              </div>
+
+              {error && <div className={styles.errorMessage}>{error}</div>}
+
+              <button type="submit" className={styles.submitBtn} disabled={loading}>
+                {loading ? 'Please wait...' : 'Create Account'}
+                <ArrowRight size={16} />
               </button>
+            </form>
+
+            <div className={styles.toggleAuthMode}>
+              Already have an account?{' '}
+              <span className={styles.toggleAuthLink} onClick={() => router.push('/login')}>
+                Log In
+              </span>
             </div>
-          </div>
+          </>
+        )}
 
+        {view === 'verify' && (
+          <>
+            <div className={styles.modalHeader}>
+              <h1 className={styles.modalTitle}>Verify Email.</h1>
+              <p className={styles.modalSubtitle}>Please enter the verification code sent to your email.</p>
+            </div>
 
+            <form onSubmit={handleVerify} className={styles.authForm}>
+              <div className={styles.fieldGroup}>
+                <label className={styles.fieldLabel}>Verification Code</label>
+                <div className={styles.inputFieldWrapper}>
+                  <input
+                    type="text"
+                    value={code}
+                    onChange={(e) => setCode(e.target.value)}
+                    required
+                    className={styles.formInput}
+                    style={{ paddingLeft: '14px' }}
+                    placeholder="123456"
+                  />
+                </div>
+              </div>
 
-          {error && <div className={styles.errorMessage}>{error}</div>}
+              {error && <div className={styles.errorMessage}>{error}</div>}
 
-          <button type="submit" className={styles.submitBtn} disabled={loading}>
-            {loading ? 'Please wait...' : 'Create Account'}
-            <ArrowRight size={16} />
-          </button>
-        </form>
+              <button type="submit" className={styles.submitBtn} disabled={loading}>
+                {loading ? 'Verifying...' : 'Verify Code'}
+                <ArrowRight size={16} />
+              </button>
+            </form>
 
-        <div className={styles.toggleAuthMode}>
-          Already have an account?{' '}
-          <span className={styles.toggleAuthLink} onClick={() => router.push('/login')}>
-            Log In
-          </span>
-        </div>
+            <div className={styles.toggleAuthMode}>
+              Didn't receive a code?{' '}
+              <span className={styles.toggleAuthLink} onClick={() => setView('signup')}>
+                Go Back
+              </span>
+            </div>
+          </>
+        )}
 
         <div className={styles.badgePill}>
           <span style={{ fontSize: '12px', fontWeight: '600' }}>🔒 Clinical security verified</span>
