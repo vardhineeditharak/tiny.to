@@ -3,6 +3,8 @@ import { auth } from '@clerk/nextjs/server';
 import { redis } from '../../../../lib/redis';
 import { logger } from '../../../../lib/logger';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(request, { params }) {
   const { code } = params;
 

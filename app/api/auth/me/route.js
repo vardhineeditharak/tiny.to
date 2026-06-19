@@ -3,6 +3,8 @@ import { auth, currentUser } from '@clerk/nextjs/server';
 import { redis } from '../../../../lib/redis';
 import { logger } from '../../../../lib/logger';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
   if (!redis) {
     return NextResponse.json({ error: 'Database is not configured.' }, { status: 503 });
