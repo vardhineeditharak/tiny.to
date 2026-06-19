@@ -154,11 +154,13 @@ export async function DELETE(request) {
       return NextResponse.json({ error: 'Forbidden. You do not own this link.' }, { status: 403 });
     }
 
-    await redis.del(`url:${code}`);
-    await redis.del(`clicks:${code}`);
-    await redis.del(`url_owner:${code}`);
-    await redis.del(`analytics:${code}`);
-    await redis.srem(`user_links:${userId}`, code);
+    const pipeline = redis.pipeline();
+    pipeline.del(`url:${code}`);
+    pipeline.del(`clicks:${code}`);
+    pipeline.del(`url_owner:${code}`);
+    pipeline.del(`analytics:${code}`);
+    pipeline.srem(`user_links:${userId}`, code);
+    await pipeline.exec();
 
     return NextResponse.json({ success: true });
   } catch (error) {
