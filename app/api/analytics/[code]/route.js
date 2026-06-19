@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
+import { auth } from '@clerk/nextjs/server';
 import { redis } from '../../../../lib/redis';
 import { logger } from '../../../../lib/logger';
 
@@ -11,27 +11,11 @@ export async function GET(request, { params }) {
   }
 
   try {
-    const cookieStore = cookies();
-    const sessionId = cookieStore.get('session')?.value;
+    const { userId } = auth();
 
-    if (!sessionId) {
+    if (!userId) {
       return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
     }
-
-    const sessionData = await redis.get(`session:${sessionId}`);
-    if (!sessionData) {
-      return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
-    }
-
-    const session = typeof sessionData === 'string' ? JSON.parse(sessionData) : sessionData;
-    const { email, userId } = session;
-
-    // Check if user is premium
-    const userJson = await redis.get(`user:${email}`);
-    if (!userJson) {
-      return NextResponse.json({ error: 'User not found.' }, { status: 404 });
-    }
-    const user = typeof userJson === 'string' ? JSON.parse(userJson) : userJson;
 
     // Check ownership of the short link
     const isOwner = await redis.sismember(`user_links:${userId}`, code);

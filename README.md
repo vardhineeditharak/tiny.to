@@ -57,14 +57,15 @@ Ensure you have the following installed on your machine:
    UPSTASH_REDIS_REST_TOKEN=your_token_here
    
    # Domain prefixed to shortened links
-   NEXT_PUBLIC_SHORT_DOMAIN=localhost:3001
+   NEXT_PUBLIC_SHORT_DOMAIN=localhost:3000
    
-   # Google OAuth Credentials (optional)
-   GOOGLE_CLIENT_ID=your-google-client-id
-   GOOGLE_CLIENT_SECRET=your-google-client-secret
-   
-   # App host URL
-   NEXT_PUBLIC_APP_URL=http://localhost:3001
+   # Clerk Configuration
+   NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=your_clerk_publishable_key
+   CLERK_SECRET_KEY=your_clerk_secret_key
+   NEXT_PUBLIC_CLERK_SIGN_IN_URL=/login
+   NEXT_PUBLIC_CLERK_SIGN_UP_URL=/signup
+   NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL=/dashboard
+   NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL=/dashboard
    ```
 
 ---

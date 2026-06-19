@@ -3,6 +3,8 @@ import { redis } from '../../../../lib/redis';
 import { logger } from '../../../../lib/logger';
 import nodemailer from 'nodemailer';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(request) {
   if (!redis) {
     return NextResponse.json({ error: 'Database is not configured.' }, { status: 503 });
